@@ -18,6 +18,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Checkout PagmoNet4j
+        uses: actions/checkout@v4
+        with:
+          repository: samthegliderpilot/PagmoNet4j
+          path: PagmoNet4j
+          submodules: recursive
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,16 +41,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:/vcpkg/installed
-          key: vcpkg-windows-ipopt-${{ hashFiles('pagmoNet/ports/**', 'ports/**', 'pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-windows-ipopt-
+          key: vcpkg-windows-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-windows-ipopt-java-
 
       - name: Build native with IPOPT
+        env:
+          PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
+          PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
       - name: Build and test
         env:
-          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/pagmoWrapper/win-build
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: ./gradlew test
         shell: pwsh
 
@@ -52,6 +64,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
+
+      - name: Checkout PagmoNet4j
+        uses: actions/checkout@v4
+        with:
+          repository: samthegliderpilot/PagmoNet4j
+          path: PagmoNet4j
           submodules: recursive
 
       - uses: actions/setup-java@v4
@@ -75,15 +94,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-linux-ipopt-${{ hashFiles('pagmoNet/ports/**', 'ports/**', 'pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-linux-ipopt-
+          key: vcpkg-linux-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-linux-ipopt-java-
 
       - name: Build native with IPOPT
+        env:
+          PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
+          PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Build and test
         env:
-          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/pagmoWrapper/build
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: ./gradlew test
 
   build-macos:
@@ -91,6 +115,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
+
+      - name: Checkout PagmoNet4j
+        uses: actions/checkout@v4
+        with:
+          repository: samthegliderpilot/PagmoNet4j
+          path: PagmoNet4j
           submodules: recursive
 
       - uses: actions/setup-java@v4
@@ -111,13 +142,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-macos-ipopt-${{ hashFiles('pagmoNet/ports/**', 'ports/**', 'pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-macos-ipopt-
+          key: vcpkg-macos-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-macos-ipopt-java-
 
       - name: Build native with IPOPT
+        env:
+          PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
+          PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Build and test
         env:
-          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/pagmoWrapper/build
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: ./gradlew test
