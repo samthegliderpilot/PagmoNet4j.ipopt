@@ -13,6 +13,7 @@ java {
 }
 
 repositories {
+    mavenLocal()  // populated by CI: ./gradlew :core:publishToMavenLocal from PagmoNet4j checkout
     mavenCentral()
     maven {
         url = uri("https://maven.pkg.github.com/samthegliderpilot/PagmoNet4j")

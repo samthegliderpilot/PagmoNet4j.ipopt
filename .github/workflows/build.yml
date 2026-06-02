@@ -51,6 +51,12 @@ jobs:
         run: pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
+      - name: Publish pagmonet4j to mavenLocal
+        run: ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
+        env:
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
+        shell: pwsh
+
       - name: Build and test
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
@@ -103,6 +109,13 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
+      - name: Publish pagmonet4j to mavenLocal
+        run: |
+          chmod +x PagmoNet4j/gradlew
+          ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
+        env:
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
+
       - name: Build and test
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
@@ -153,9 +166,18 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
+      - name: Publish pagmonet4j to mavenLocal
+        run: |
+          chmod +x PagmoNet4j/gradlew
+          ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
+        env:
+          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
+
       - name: Build and test
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew test
+        run: |
+          chmod +x gradlew
+          ./gradlew test
