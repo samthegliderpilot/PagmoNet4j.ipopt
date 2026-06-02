@@ -108,7 +108,9 @@ jobs:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew test
+        run: |
+          chmod +x gradlew
+          ./gradlew test
 
   build-macos:
     runs-on: macos-latest
