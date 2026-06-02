@@ -44,6 +44,17 @@ tasks.test {
         ?.let { rootProject.projectDir.resolve(it).absolutePath }
         ?: "."
     systemProperty("java.library.path", nativeDir)
+    forkEvery = 1
+    maxParallelForks = 1
+    systemProperty("junit.jupiter.execution.timeout.default", "30s")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    val nativeDir = System.getenv("PAGMO4J_NATIVE_DIR")
+        ?.let { rootProject.projectDir.resolve(it).absolutePath }
+        ?: "."
+    systemProperty("java.library.path", nativeDir)
 }
 
 publishing {
