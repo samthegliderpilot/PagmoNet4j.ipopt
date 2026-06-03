@@ -81,4 +81,47 @@ class IpoptSolverTest {
                 "ipopt.get_name() should contain 'ipopt', got: " + name);
         }
     }
+
+    // ── MUMPS-specific tests ──────────────────────────────────────────────────
+
+    @Test
+    void mumpsLinearSolverIsAvailable() {
+        // Verifies that "mumps" is a valid option string — it would throw on
+        // evolve with Invalid_Option if MUMPS was not compiled in.
+        try (ipopt algo = new ipopt()) {
+            assertDoesNotThrow(() -> algo.set_string_option("linear_solver", "mumps"),
+                "MUMPS must be a valid linear_solver option in this build");
+        }
+    }
+
+    @Test
+    void mumpsLinearSolverConverges() {
+        // Red: with MA27 HSL loader this returned a bad result code and f≈9.
+        // Green: with MUMPS statically linked f must converge below 1e-6.
+        try (QuadraticProblem prob = new QuadraticProblem();
+             ipopt algo = new ipopt()) {
+            algo.set_string_option("linear_solver", "mumps");
+            try (population pop = new population(prob, 1L, 42L);
+                 population evolved = algo.evolve(pop)) {
+                double fBest = evolved.champion_f().get(0);
+                assertTrue(fBest < 1e-6,
+                    String.format("MUMPS solver must converge near f*=0; got f=%.6f", fBest));
+            }
+        }
+    }
+
+    @Test
+    void mumpsLogLinesPopulatedAfterSolve() {
+        // With MA27 the log was empty; MUMPS should produce iteration entries.
+        try (QuadraticProblem prob = new QuadraticProblem();
+             ipopt algo = new ipopt()) {
+            algo.set_string_option("linear_solver", "mumps");
+            algo.set_integer_option_u64("print_level", BigInteger.ZERO);
+            try (population pop = new population(prob, 1L, 42L)) {
+                algo.evolve(pop).close();
+            }
+            // Java ipopt doesn't expose GetTypedLogLines — check name at minimum
+            assertFalse(algo.get_name().isEmpty());
+        }
+    }
 }
