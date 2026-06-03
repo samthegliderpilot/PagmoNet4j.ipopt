@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Version (e.g. 1.0.0-beta.6) — overrides tag when run manually'
+        required: false
       dry_run:
         description: 'Build and test but skip publishing to GitHub Packages'
         type: boolean
@@ -16,6 +19,7 @@ env:
 
 jobs:
 
+  # ── Windows: build JNI DLL with IPOPT ────────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
@@ -46,8 +50,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:/vcpkg/installed
-          key: vcpkg-windows-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-windows-ipopt-java-
+          key: vcpkg-windows-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-windows-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
         env:
@@ -56,39 +60,15 @@ jobs:
         run: pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
-      - name: Publish pagmonet4j to mavenLocal
-        run: ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
-        env:
-          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
-        shell: pwsh
-
-      - name: Run tests
-        env:
-          PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew test
-        shell: pwsh
-
-      - name: Assemble JAR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew build -x test
-        shell: pwsh
-
-      - name: Upload JAR artifact
+      - name: Upload native artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jar-windows
-          path: build/libs/pagmonet4j-ipopt-*.jar
+          name: native-windows
+          path: PagmoNet4j/pagmoWrapper/win-build/pagmonet4j.dll
 
-  publish:
-    needs: build-windows
+  # ── Linux: build libpagmonet4j.so with IPOPT ──────────────────────────────
+  build-linux:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -122,8 +102,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-linux-ipopt-publish-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-linux-ipopt-publish-
+          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-linux-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
         env:
@@ -131,18 +111,162 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
-      - name: Publish pagmonet4j to mavenLocal
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-linux
+          path: PagmoNet4j/pagmoWrapper/build/libpagmonet4j.so
+
+  # ── macOS: build arm64 + x86_64 universal binary with IPOPT ──────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout PagmoNet4j
+        uses: actions/checkout@v4
+        with:
+          repository: samthegliderpilot/PagmoNet4j
+          path: PagmoNet4j
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install build tools
+        run: brew install autoconf autoconf-archive automake libtool swig powershell
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg ~/vcpkg --depth 1
+          ~/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
+
+      - name: Cache vcpkg installed
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg/installed
+          key: vcpkg-macos-pagmonet4j-ipopt-universal-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-macos-pagmonet4j-ipopt-universal-
+
+      - name: Build arm64 slice (native with IPOPT)
+        env:
+          PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
+          PAGMONET4J_FEATURES: nlopt,ipopt
+        run: pwsh scripts/build-native.ps1 -Configuration Release
+
+      - name: Copy arm64 slice
+        run: cp PagmoNet4j/pagmoWrapper/build/libpagmonet4j.dylib libpagmonet4j-arm64.dylib
+
+      - name: Build x86_64 slice
+        env:
+          PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
+          PAGMONET4J_FEATURES: nlopt,ipopt
+        run: pwsh scripts/build-native.ps1 -Configuration Release -VcpkgTriplet x64-osx-static-pic
+
+      - name: Create universal binary
+        run: |
+          lipo -create \
+            libpagmonet4j-arm64.dylib \
+            PagmoNet4j/pagmoWrapper/build/libpagmonet4j.dylib \
+            -output libpagmonet4j.dylib
+          codesign --sign - libpagmonet4j.dylib
+          lipo -info libpagmonet4j.dylib
+
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-macos-universal
+          path: libpagmonet4j.dylib
+
+  # ── Publish: assemble fat JAR with IPOPT natives, publish to GitHub Packages
+  publish:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout PagmoNet4j
+        uses: actions/checkout@v4
+        with:
+          repository: samthegliderpilot/PagmoNet4j
+          path: PagmoNet4j
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential swig curl zip unzip tar \
+            autoconf autoconf-archive automake libtool powershell
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg ~/vcpkg --depth 1
+          ~/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> $GITHUB_ENV
+
+      - name: Cache vcpkg installed
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg/installed
+          key: vcpkg-linux-pagmonet4j-ipopt-publish-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-linux-pagmonet4j-ipopt-publish-
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: native-windows
+          path: PagmoNet4j/pagmoWrapper/win-build/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: PagmoNet4j/pagmoWrapper/build/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-macos-universal
+          path: PagmoNet4j/pagmoWrapper/build/
+
+      - name: Publish PagmoNet4j to mavenLocal
         run: |
           chmod +x PagmoNet4j/gradlew
           ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
 
-      - name: Publish to GitHub Packages
-        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+      - name: Assemble JAR
         run: |
           chmod +x gradlew
-          ./gradlew publish -x test
+          ./gradlew build -x test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Upload assembled JAR (for inspection)
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-final
+          path: build/libs/pagmonet4j-ipopt-*.jar
+
+      - name: Publish to GitHub Packages
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        run: ./gradlew publish -x test
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

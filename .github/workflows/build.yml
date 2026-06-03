@@ -41,8 +41,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:/vcpkg/installed
-          key: vcpkg-windows-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-windows-ipopt-java-
+          key: vcpkg-windows-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-windows-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
         env:
@@ -51,13 +51,13 @@ jobs:
         run: pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
-      - name: Publish pagmonet4j to mavenLocal
+      - name: Publish PagmoNet4j to mavenLocal
         run: ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
         shell: pwsh
 
-      - name: Build and test
+      - name: Run tests
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -100,8 +100,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-linux-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-linux-ipopt-java-
+          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-linux-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
         env:
@@ -109,14 +109,14 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
-      - name: Publish pagmonet4j to mavenLocal
+      - name: Publish PagmoNet4j to mavenLocal
         run: |
           chmod +x PagmoNet4j/gradlew
           ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
 
-      - name: Build and test
+      - name: Run tests
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -157,8 +157,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-macos-ipopt-java-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
-          restore-keys: vcpkg-macos-ipopt-java-
+          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          restore-keys: vcpkg-macos-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
         env:
@@ -166,14 +166,14 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
-      - name: Publish pagmonet4j to mavenLocal
+      - name: Publish PagmoNet4j to mavenLocal
         run: |
           chmod +x PagmoNet4j/gradlew
           ./PagmoNet4j/gradlew -p PagmoNet4j :core:publishToMavenLocal
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
 
-      - name: Build and test
+      - name: Run tests
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
