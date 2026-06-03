@@ -59,13 +59,12 @@ try (MyProblem prob = new MyProblem();
 |---|---|---|
 | `tol` | `set_numeric_option` | Convergence tolerance (default `1e-8`) |
 | `max_iter` | `set_integer_option_u64` | Maximum iterations |
-| `linear_solver` | `set_string_option` | `ma27` (default), `ma57`, `ma86`, `ma97` |
+| `linear_solver` | `set_string_option` | `mumps` (default when available), `ma27`, `ma57`, `ma86`, `ma97` |
 | `hessian_approximation` | `set_string_option` | `exact` or `limited-memory` (L-BFGS) |
 
 ### Known limitations
 
-- The MA27 linear solver uses IPOPT's HSL runtime-load model. On some platforms the internal result code indicates an option issue even when the solve makes real progress.
-- MUMPS and SPRAL linear solvers are not included in this build.
+- SPRAL linear solver is not included in this build.
 
 ## License
 

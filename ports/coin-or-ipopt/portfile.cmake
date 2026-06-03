@@ -32,7 +32,7 @@ vcpkg_configure_make(
       --without-hsl
       --without-asl
       ${LAPACK_OPTION}
-      --without-mumps
+      --with-mumps
       --enable-relocatable
       --disable-f77
       --disable-java

@@ -59,26 +59,16 @@ class IpoptSolverTest {
     }
 
     @Test
-    void ipoptEvolvesAndImproves() {
+    void ipoptConverges() {
         try (QuadraticProblem prob = new QuadraticProblem();
-             ipopt algo = new ipopt()) {
+             ipopt algo = new ipopt();
+             population pop = new population(prob, 1L, 42L);
+             population evolved = algo.evolve(pop)) {
 
-            try (population pop = new population(prob, 1L, 42L)) {
-                double fInitial = pop.champion_f().get(0);
-
-                population evolved = assertDoesNotThrow(() -> algo.evolve(pop),
-                    "ipopt.evolve() must not throw");
-
-                try {
-                    assertNotNull(evolved, "evolve() must return a non-null population");
-                    double fBest = evolved.champion_f().get(0);
-                    assertTrue(fBest < fInitial,
-                        String.format("IPOPT must improve on the starting point " +
-                            "(initial f=%.4f, final f=%.4f)", fInitial, fBest));
-                } finally {
-                    if (evolved != null) evolved.close();
-                }
-            }
+            assertNotNull(evolved, "evolve() must return a non-null population");
+            double fBest = evolved.champion_f().get(0);
+            assertTrue(fBest < 1e-6,
+                String.format("IPOPT must converge near f*=0; got f=%.6f", fBest));
         }
     }
 
