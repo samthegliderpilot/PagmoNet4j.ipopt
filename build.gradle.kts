@@ -10,6 +10,7 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
     withSourcesJar()
+    withJavadocJar()
 }
 
 repositories {
@@ -39,6 +40,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// SWIG-generated code has missing @param/@return tags — suppress doclint so javadoc doesn't fail.
+tasks.javadoc {
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+}
+
 tasks.test {
     useJUnitPlatform()
     val nativeDir = System.getenv("PAGMO4J_NATIVE_DIR")
@@ -48,14 +54,6 @@ tasks.test {
     forkEvery = 1
     maxParallelForks = 1
     systemProperty("junit.jupiter.execution.timeout.default", "30s")
-}
-
-tasks.test {
-    useJUnitPlatform()
-    val nativeDir = System.getenv("PAGMO4J_NATIVE_DIR")
-        ?.let { rootProject.projectDir.resolve(it).absolutePath }
-        ?: "."
-    systemProperty("java.library.path", nativeDir)
 }
 
 publishing {
@@ -83,6 +81,22 @@ publishing {
                         name.set("LGPL-2.1-or-later")
                         url.set("https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html")
                     }
+                }
+                developers {
+                    developer {
+                        id.set("samthegliderpilot")
+                        name.set("samthegliderpilot")
+                        email.set("samthegliderpilot@gmail.com")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/samthegliderpilot/PagmoNet4j.ipopt")
+                    connection.set("scm:git:git://github.com/samthegliderpilot/PagmoNet4j.ipopt.git")
+                    developerConnection.set("scm:git:ssh://github.com/samthegliderpilot/PagmoNet4j.ipopt.git")
+                }
+                issueManagement {
+                    system.set("GitHub")
+                    url.set("https://github.com/samthegliderpilot/PagmoNet4j.ipopt/issues")
                 }
             }
         }
