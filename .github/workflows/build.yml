@@ -30,6 +30,38 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Install SWIG
+        run: choco install swig --yes
+        shell: pwsh
+
+      - name: Regenerate PagmoNet4j base Java bindings
+        run: |
+          New-Item -ItemType Directory -Force -Path "PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j" | Out-Null
+          swig -java -c++ `
+            -package "io.github.samthegliderpilot.pagmonet4j" `
+            -outdir "PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j" `
+            -o "PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx" `
+            -IPagmoNet4j/pagmoNet/swig `
+            -IPagmoNet4j/pagmoNet/native `
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
+        shell: pwsh
+
+      - name: Regenerate IPOPT Java binding
+        run: |
+          $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+          New-Item -ItemType Directory -Path $tmpDir | Out-Null
+          swig -java -c++ `
+            -package "io.github.samthegliderpilot.pagmonet4j" `
+            -outdir $tmpDir `
+            -o "$tmpDir/ipopt_wrap.cxx" `
+            -DPAGMO_WITH_IPOPT_JNI `
+            -IpagmoNet/swig `
+            -IpagmoNet/native `
+            pagmoNet/swig/Pagmo4jSwigInterface.i
+          New-Item -ItemType Directory -Force -Path "src/generated/java/io/github/samthegliderpilot/pagmonet4j" | Out-Null
+          Copy-Item "$tmpDir/ipopt.java" "src/generated/java/io/github/samthegliderpilot/pagmonet4j/"
+        shell: pwsh
+
       - name: Bootstrap vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg C:/vcpkg --depth 1
@@ -90,6 +122,31 @@ jobs:
           sudo apt-get install -y cmake build-essential swig curl zip unzip tar \
             autoconf autoconf-archive automake libtool powershell
 
+      - name: Regenerate PagmoNet4j base Java bindings
+        run: |
+          mkdir -p PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          swig -java -c++ \
+            -package "io.github.samthegliderpilot.pagmonet4j" \
+            -outdir PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j \
+            -o PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx \
+            -IPagmoNet4j/pagmoNet/swig \
+            -IPagmoNet4j/pagmoNet/native \
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
+
+      - name: Regenerate IPOPT Java binding
+        run: |
+          tmpdir=$(mktemp -d)
+          swig -java -c++ \
+            -package "io.github.samthegliderpilot.pagmonet4j" \
+            -outdir "$tmpdir" \
+            -o "$tmpdir/ipopt_wrap.cxx" \
+            -DPAGMO_WITH_IPOPT_JNI \
+            -IpagmoNet/swig \
+            -IpagmoNet/native \
+            pagmoNet/swig/Pagmo4jSwigInterface.i
+          mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+
       - name: Bootstrap vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg ~/vcpkg --depth 1
@@ -100,7 +157,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
           restore-keys: vcpkg-linux-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
@@ -147,6 +204,31 @@ jobs:
       - name: Install build tools
         run: brew install autoconf autoconf-archive automake libtool swig powershell
 
+      - name: Regenerate PagmoNet4j base Java bindings
+        run: |
+          mkdir -p PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          swig -java -c++ \
+            -package "io.github.samthegliderpilot.pagmonet4j" \
+            -outdir PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j \
+            -o PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx \
+            -IPagmoNet4j/pagmoNet/swig \
+            -IPagmoNet4j/pagmoNet/native \
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
+
+      - name: Regenerate IPOPT Java binding
+        run: |
+          tmpdir=$(mktemp -d)
+          swig -java -c++ \
+            -package "io.github.samthegliderpilot.pagmonet4j" \
+            -outdir "$tmpdir" \
+            -o "$tmpdir/ipopt_wrap.cxx" \
+            -DPAGMO_WITH_IPOPT_JNI \
+            -IpagmoNet/swig \
+            -IpagmoNet/native \
+            pagmoNet/swig/Pagmo4jSwigInterface.i
+          mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+
       - name: Bootstrap vcpkg
         run: |
           git clone https://github.com/microsoft/vcpkg ~/vcpkg --depth 1
@@ -157,7 +239,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
           restore-keys: vcpkg-macos-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
