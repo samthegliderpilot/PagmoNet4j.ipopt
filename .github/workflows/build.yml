@@ -149,7 +149,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-linux-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
           restore-keys: vcpkg-linux-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
@@ -227,7 +227,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg/installed
-          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
           restore-keys: vcpkg-macos-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT

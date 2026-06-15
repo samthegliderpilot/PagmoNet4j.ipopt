@@ -33,7 +33,7 @@ if (-not (Test-Path "$PagmoNet4jRoot\scripts\build-native.ps1")) {
 # Add this repo's IPOPT overlay port to vcpkg's search path.
 # PagmoNet4j's build script picks up pagmoNet/ports (pagmo2) and pagmoNet/triplets.
 # We prepend our ports/ so vcpkg resolves coin-or-ipopt from here.
-$ipoptPort = "$RepoRoot\ports"
+$ipoptPort = Join-Path $RepoRoot "ports"
 $env:VCPKG_OVERLAY_PORTS = if ($env:VCPKG_OVERLAY_PORTS) {
     "$ipoptPort;$env:VCPKG_OVERLAY_PORTS"
 } else {
@@ -46,4 +46,4 @@ Write-Host "Delegating to PagmoNet4j build script..."
 $scriptArgs = @("-Configuration", $Configuration)
 if ($VcpkgTriplet) { $scriptArgs += "-VcpkgTriplet", $VcpkgTriplet }
 
-& pwsh "$PagmoNet4jRoot\scripts\build-native.ps1" @scriptArgs
+& pwsh (Join-Path $PagmoNet4jRoot "scripts" "build-native.ps1") @scriptArgs

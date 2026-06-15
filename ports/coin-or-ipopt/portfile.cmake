@@ -10,6 +10,22 @@ file(COPY "${CURRENT_INSTALLED_DIR}/share/coin-or-buildtools/" DESTINATION "${SO
 
 set(ENV{ACLOCAL} "aclocal -I \"${SOURCE_PATH}/BuildTools\"")
 
+# Explicitly pass MUMPS location to IPOPT's autoconf.
+# AC_COIN_CHK_PKG([MUMPS],...,[coinmumps]) falls back to env vars when
+# pkg-config detection fails. The variable prefix is the first arg (MUMPS),
+# but some BuildTools versions use the pkg-config name prefix (COINMUMPS).
+# Set both to cover either convention.
+set(_mumps_cflags "-I${CURRENT_INSTALLED_DIR}/include/coin-or -I${CURRENT_INSTALLED_DIR}/include")
+if(VCPKG_TARGET_IS_WINDOWS)
+    set(_mumps_libs "-L${CURRENT_INSTALLED_DIR}/lib -lcoinmumps -lmkl_intel_lp64 -lmkl_sequential -lmkl_core")
+else()
+    set(_mumps_libs "-L${CURRENT_INSTALLED_DIR}/lib -lcoinmumps -lopenblas")
+endif()
+set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
+set(ENV{MUMPS_LIBS} "${_mumps_libs}")
+set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
+set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
+
 # On Windows with MSVC static libraries, autotools pkg-config LAPACK detection
 # fails because lapack.pc emits "-llapack -llibf2c" but omits "-lopenblas";
 # LAPACK routines call into BLAS (openblas), so the dsyev link test fails.
@@ -20,7 +36,8 @@ if(VCPKG_TARGET_IS_WINDOWS AND VCPKG_LIBRARY_LINKAGE STREQUAL "static")
     set(LAPACK_OPTION "--with-lapack=-llapack -llibf2c -lopenblas")
     set(CXXLIBS_OPTION "CXXLIBS=")
 else()
-    set(LAPACK_OPTION "--with-lapack")
+    # On Linux/macOS, openblas provides both BLAS and LAPACK.
+    set(LAPACK_OPTION "--with-lapack=-lopenblas")
     set(CXXLIBS_OPTION "")
 endif()
 
