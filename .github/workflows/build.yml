@@ -54,6 +54,8 @@ jobs:
             PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           New-Item -ItemType Directory -Force -Path "src/generated/java/io/github/samthegliderpilot/pagmonet4j" | Out-Null
           Copy-Item "$tmpDir/ipopt.java" "src/generated/java/io/github/samthegliderpilot/pagmonet4j/"
+          Copy-Item "$tmpDir/pagmonet4jJNI.java" "PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j/"
+          Copy-Item "$tmpDir/ipopt_wrap.cxx" "PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx"
         shell: pwsh
 
       - name: Bootstrap vcpkg
@@ -134,6 +136,8 @@ jobs:
             PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
           cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+          cp "$tmpdir/pagmonet4jJNI.java" PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+          cp "$tmpdir/ipopt_wrap.cxx" PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx
 
       - name: Bootstrap vcpkg
         run: |
@@ -210,6 +214,8 @@ jobs:
             PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
           cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+          cp "$tmpdir/pagmonet4jJNI.java" PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j/
+          cp "$tmpdir/ipopt_wrap.cxx" PagmoNet4j/pagmoWrapper/generated/pagmonet4j_wrap.cxx
 
       - name: Bootstrap vcpkg
         run: |
