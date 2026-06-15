@@ -18,13 +18,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout PagmoNet4j
-        uses: actions/checkout@v4
-        with:
-          repository: samthegliderpilot/PagmoNet4j
-          path: PagmoNet4j
-          submodules: recursive
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -55,9 +48,9 @@ jobs:
             -outdir $tmpDir `
             -o "$tmpDir/ipopt_wrap.cxx" `
             -DPAGMO_WITH_IPOPT_JNI `
-            -IpagmoNet/swig `
-            -IpagmoNet/native `
-            pagmoNet/swig/Pagmo4jSwigInterface.i
+            -IPagmoNet4j/pagmoNet/swig `
+            -IPagmoNet4j/pagmoNet/native `
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           New-Item -ItemType Directory -Force -Path "src/generated/java/io/github/samthegliderpilot/pagmonet4j" | Out-Null
           Copy-Item "$tmpDir/ipopt.java" "src/generated/java/io/github/samthegliderpilot/pagmonet4j/"
         shell: pwsh
@@ -104,13 +97,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout PagmoNet4j
-        uses: actions/checkout@v4
-        with:
-          repository: samthegliderpilot/PagmoNet4j
-          path: PagmoNet4j
-          submodules: recursive
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -141,9 +127,9 @@ jobs:
             -outdir "$tmpdir" \
             -o "$tmpdir/ipopt_wrap.cxx" \
             -DPAGMO_WITH_IPOPT_JNI \
-            -IpagmoNet/swig \
-            -IpagmoNet/native \
-            pagmoNet/swig/Pagmo4jSwigInterface.i
+            -IPagmoNet4j/pagmoNet/swig \
+            -IPagmoNet4j/pagmoNet/native \
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
           cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
 
@@ -189,13 +175,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout PagmoNet4j
-        uses: actions/checkout@v4
-        with:
-          repository: samthegliderpilot/PagmoNet4j
-          path: PagmoNet4j
-          submodules: recursive
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -223,9 +202,9 @@ jobs:
             -outdir "$tmpdir" \
             -o "$tmpdir/ipopt_wrap.cxx" \
             -DPAGMO_WITH_IPOPT_JNI \
-            -IpagmoNet/swig \
-            -IpagmoNet/native \
-            pagmoNet/swig/Pagmo4jSwigInterface.i
+            -IPagmoNet4j/pagmoNet/swig \
+            -IPagmoNet4j/pagmoNet/native \
+            PagmoNet4j/pagmoNet/swig/Pagmo4jSwigInterface.i
           mkdir -p src/generated/java/io/github/samthegliderpilot/pagmonet4j
           cp "$tmpdir/ipopt.java" src/generated/java/io/github/samthegliderpilot/pagmonet4j/
 

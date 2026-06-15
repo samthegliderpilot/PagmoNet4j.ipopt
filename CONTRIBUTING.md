@@ -15,7 +15,7 @@ git clone --recurse-submodules https://github.com/samthegliderpilot/PagmoNet4j.i
 
 ## Building the native layer
 
-IPOPT is compiled into the JNI library. The `ports/coin-or-ipopt/` overlay in this repo must be on the vcpkg overlay path alongside the pagmoNet ports.
+IPOPT is compiled into the JNI library. The `ports/coin-or-ipopt/` overlay in this repo must be on the vcpkg overlay path alongside the PagmoNet4j ports.
 
 ```powershell
 # Windows
@@ -32,7 +32,7 @@ pwsh scripts/build-native.ps1 -Configuration Release
 ## Running tests
 
 ```powershell
-$env:PAGMO4J_NATIVE_DIR = "pagmoWrapper/win-build"
+$env:PAGMO4J_NATIVE_DIR = "PagmoNet4j/pagmoWrapper/win-build"
 ./gradlew test
 ```
 
@@ -43,7 +43,7 @@ $env:PAGMO4J_NATIVE_DIR = "pagmoWrapper/win-build"
 | `src/generated/java/` | SWIG-generated Java wrapper class |
 | `swig/ipopt.i` | SWIG interface file |
 | `ports/coin-or-ipopt/` | vcpkg overlay port for COIN-OR IPOPT |
-| `pagmoNet/` | Submodule — shared SWIG + native bridge |
+| `PagmoNet4j/` | Submodule — full PagmoNet4j repo (contains `pagmoNet/` nested submodule) |
 
 ## License
 

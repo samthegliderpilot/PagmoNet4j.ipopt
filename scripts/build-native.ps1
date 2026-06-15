@@ -24,7 +24,7 @@ $ErrorActionPreference = "Stop"
 
 $RepoRoot    = Split-Path $PSScriptRoot -Parent
 $PagmoNet4jRoot = if ($env:PAGMONET4J_ROOT) { $env:PAGMONET4J_ROOT } `
-                  else { Join-Path $RepoRoot "..\PagmoNet4j" }
+                  else { Join-Path $RepoRoot "PagmoNet4j" }
 
 if (-not (Test-Path "$PagmoNet4jRoot\scripts\build-native.ps1")) {
     throw "PagmoNet4j not found at '$PagmoNet4jRoot'. Clone PagmoNet4j alongside this repo or set `$env:PAGMONET4J_ROOT."
