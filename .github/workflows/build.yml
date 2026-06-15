@@ -30,6 +30,7 @@ jobs:
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
           New-Item -ItemType Directory -Force -Path "PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j" | Out-Null
+          New-Item -ItemType Directory -Force -Path "PagmoNet4j/pagmoWrapper/generated" | Out-Null
           swig -java -c++ `
             -package "io.github.samthegliderpilot.pagmonet4j" `
             -outdir "PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j" `
@@ -111,6 +112,7 @@ jobs:
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
           mkdir -p PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          mkdir -p PagmoNet4j/pagmoWrapper/generated
           swig -java -c++ \
             -package "io.github.samthegliderpilot.pagmonet4j" \
             -outdir PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j \
@@ -186,6 +188,7 @@ jobs:
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
           mkdir -p PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j
+          mkdir -p PagmoNet4j/pagmoWrapper/generated
           swig -java -c++ \
             -package "io.github.samthegliderpilot.pagmonet4j" \
             -outdir PagmoNet4j/core/src/generated/java/io/github/samthegliderpilot/pagmonet4j \
