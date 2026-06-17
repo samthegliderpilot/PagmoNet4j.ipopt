@@ -72,6 +72,10 @@ jobs:
           key: vcpkg-windows-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
           restore-keys: vcpkg-windows-pagmonet4j-ipopt-
 
+      - name: Install MUMPS (Windows via MSYS2)
+        run: C:\msys64\usr\bin\pacman.exe -S --noconfirm --needed mingw-w64-x86_64-mumps
+        shell: cmd
+
       - name: Build native with IPOPT
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
@@ -109,7 +113,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential swig curl zip unzip tar \
-            autoconf autoconf-archive automake libtool powershell
+            autoconf autoconf-archive automake libtool libmumps-dev powershell
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
@@ -187,7 +191,7 @@ jobs:
           java-version: '21'
 
       - name: Install build tools
-        run: brew install autoconf autoconf-archive automake libtool swig powershell
+        run: brew install autoconf autoconf-archive automake libtool swig powershell mumps
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |

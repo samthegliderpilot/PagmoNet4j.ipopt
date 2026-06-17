@@ -10,33 +10,69 @@ file(COPY "${CURRENT_INSTALLED_DIR}/share/coin-or-buildtools/" DESTINATION "${SO
 
 set(ENV{ACLOCAL} "aclocal -I \"${SOURCE_PATH}/BuildTools\"")
 
-# Explicitly pass MUMPS location to IPOPT's autoconf.
-# AC_COIN_CHK_PKG([MUMPS],...,[coinmumps]) falls back to env vars when
-# pkg-config detection fails. The variable prefix is the first arg (MUMPS),
-# but some BuildTools versions use the pkg-config name prefix (COINMUMPS).
-# Set both to cover either convention.
-set(_mumps_cflags "-I${CURRENT_INSTALLED_DIR}/include/coin-or -I${CURRENT_INSTALLED_DIR}/include")
 if(VCPKG_TARGET_IS_WINDOWS)
-    set(_mumps_libs "-L${CURRENT_INSTALLED_DIR}/lib -lcoinmumps -lmkl_intel_lp64 -lmkl_sequential -lmkl_core")
-else()
-    set(_mumps_libs "-L${CURRENT_INSTALLED_DIR}/lib -lcoinmumps -lopenblas")
-endif()
-set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
-set(ENV{MUMPS_LIBS} "${_mumps_libs}")
-set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
-set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
-
-# On Windows with MSVC static libraries, autotools pkg-config LAPACK detection
-# fails because lapack.pc emits "-llapack -llibf2c" but omits "-lopenblas";
-# LAPACK routines call into BLAS (openblas), so the dsyev link test fails.
-# Passing --with-lapack=<flags> directly bypasses pkg-config and uses the
-# explicit flags. CXXLIBS is also unset to suppress the unrelated CXXLIBS
-# detection warning that can poison subsequent link tests.
-if(VCPKG_TARGET_IS_WINDOWS AND VCPKG_LIBRARY_LINKAGE STREQUAL "static")
-    set(LAPACK_OPTION "--with-lapack=-llapack -llibf2c -lopenblas")
+    # MUMPS provided by coin-or-mumps bridge port (system MSYS2/MinGW64).
+    # Use POSIX /c/msys64/... paths since configure runs inside MSYS2 bash.
+    set(_mumps_cflags "-I/c/msys64/mingw64/include")
+    set(_mumps_libs "-L/c/msys64/mingw64/lib -ldmumps -lmumps_common -lpord -lgfortran -lopenblas")
+    set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
+    set(ENV{MUMPS_LIBS} "${_mumps_libs}")
+    set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
+    set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
+    set(_mumps_option "--with-mumps")
+    set(LAPACK_OPTION "--with-lapack=-L/c/msys64/mingw64/lib -lopenblas")
     set(CXXLIBS_OPTION "CXXLIBS=")
 else()
-    # On Linux/macOS, openblas provides both BLAS and LAPACK.
+    # Linux/macOS: MUMPS is provided by the coin-or-mumps bridge port, which
+    # writes coinmumps.pc into ${CURRENT_INSTALLED_DIR}/lib/pkgconfig.
+    # vcpkg_configure_make automatically adds that dir to PKG_CONFIG_PATH.
+    # Belt-and-suspenders: also set the env vars that AC_COIN_CHK_PKG reads
+    # when pkg-config fails (both naming conventions).
+    if(VCPKG_TARGET_IS_OSX)
+        find_program(_brew NAMES brew HINTS /opt/homebrew/bin /usr/local/bin)
+        execute_process(
+            COMMAND "${_brew}" --prefix mumps
+            OUTPUT_VARIABLE _mumps_prefix
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        execute_process(
+            COMMAND "${_brew}" --prefix gcc
+            OUTPUT_VARIABLE _gcc_prefix
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        set(_gfortran_ldflags "")
+        file(GLOB _gfortran_dirs "${_gcc_prefix}/lib/gcc/*")
+        foreach(_d IN LISTS _gfortran_dirs)
+            if(IS_DIRECTORY "${_d}" AND EXISTS "${_d}/libgfortran.a")
+                set(_gfortran_ldflags " -L${_d}")
+                break()
+            endif()
+        endforeach()
+        set(_mumps_cflags "-I${_mumps_prefix}/include")
+        set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common${_gfortran_ldflags} -lgfortran -lopenblas")
+    else()
+        find_library(_dmumps_lib NAMES dmumps
+            HINTS
+                /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
+                /usr/lib/x86_64-linux-gnu
+                /usr/lib/aarch64-linux-gnu
+                /usr/lib
+            NO_DEFAULT_PATH)
+        if(_dmumps_lib)
+            get_filename_component(_mumps_lib_dir "${_dmumps_lib}" DIRECTORY)
+        else()
+            set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
+        endif()
+        set(_mumps_cflags "-I/usr/include")
+        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common -lopenblas -lgfortran")
+    endif()
+
+    set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
+    set(ENV{MUMPS_LIBS} "${_mumps_libs}")
+    set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
+    set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
+
+    set(_mumps_option "--with-mumps")
     set(LAPACK_OPTION "--with-lapack=-lopenblas")
     set(CXXLIBS_OPTION "")
 endif()
@@ -49,7 +85,7 @@ vcpkg_configure_make(
       --without-hsl
       --without-asl
       ${LAPACK_OPTION}
-      --with-mumps
+      ${_mumps_option}
       --enable-relocatable
       --disable-f77
       --disable-java
