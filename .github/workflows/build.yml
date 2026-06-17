@@ -191,7 +191,9 @@ jobs:
           java-version: '21'
 
       - name: Install build tools
-        run: brew install autoconf autoconf-archive automake libtool swig powershell mumps
+        run: |
+          brew tap brewsci/num
+          brew install autoconf autoconf-archive automake libtool swig powershell brewsci-mumps
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |

@@ -31,10 +31,18 @@ else()
     if(VCPKG_TARGET_IS_OSX)
         find_program(_brew NAMES brew HINTS /opt/homebrew/bin /usr/local/bin)
         execute_process(
-            COMMAND "${_brew}" --prefix mumps
+            COMMAND "${_brew}" --prefix brewsci-mumps
             OUTPUT_VARIABLE _mumps_prefix
             OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE _brew_rc
             ERROR_QUIET)
+        if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
+            execute_process(
+                COMMAND "${_brew}" --prefix mumps
+                OUTPUT_VARIABLE _mumps_prefix
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET)
+        endif()
         execute_process(
             COMMAND "${_brew}" --prefix gcc
             OUTPUT_VARIABLE _gcc_prefix
@@ -64,7 +72,8 @@ else()
             set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
         endif()
         set(_mumps_cflags "-I/usr/include")
-        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common -lopenblas -lgfortran")
+        # Shared system MUMPS carries transitive deps in the .so; don't repeat them.
+        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
     endif()
 
     set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")

@@ -47,3 +47,4 @@ $scriptArgs = @("-Configuration", $Configuration)
 if ($VcpkgTriplet) { $scriptArgs += "-VcpkgTriplet", $VcpkgTriplet }
 
 & pwsh (Join-Path $PagmoNet4jRoot "scripts" "build-native.ps1") @scriptArgs
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

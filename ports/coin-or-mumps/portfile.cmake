@@ -1,10 +1,10 @@
 # Bridge port: does not build MUMPS from source.
-# Creates a coinmumps.pc pointing to the system/MSYS2-installed MUMPS so that
+# Creates coinmumps.pc pointing to the system/MSYS2-installed MUMPS so that
 # IPOPT's AC_COIN_CHK_PKG([MUMPS],...,[coinmumps]) succeeds via pkg-config.
 #
 # Prerequisites (installed before vcpkg runs):
 #   Linux:   apt-get install libmumps-dev
-#   macOS:   brew install mumps
+#   macOS:   brew tap brewsci/num && brew install brewsci-mumps
 #   Windows: C:\msys64\usr\bin\pacman.exe -S --noconfirm mingw-w64-x86_64-mumps
 
 set(VCPKG_BUILD_TYPE release)
@@ -12,16 +12,25 @@ set(VCPKG_BUILD_TYPE release)
 if(VCPKG_TARGET_IS_OSX)
     find_program(_brew NAMES brew HINTS /opt/homebrew/bin /usr/local/bin)
     if(NOT _brew)
-        message(FATAL_ERROR "Homebrew not found. Install Homebrew, then: brew install mumps")
+        message(FATAL_ERROR "Homebrew not found. Install Homebrew, then: brew tap brewsci/num && brew install brewsci-mumps")
     endif()
+    # Try the brewsci/num formula name first, fall back to plain "mumps".
     execute_process(
-        COMMAND "${_brew}" --prefix mumps
+        COMMAND "${_brew}" --prefix brewsci-mumps
         OUTPUT_VARIABLE _mumps_prefix
         OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE _brew_rc
         ERROR_QUIET)
     if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
-        message(FATAL_ERROR "MUMPS not found via Homebrew. Run: brew install mumps")
+        execute_process(
+            COMMAND "${_brew}" --prefix mumps
+            OUTPUT_VARIABLE _mumps_prefix
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE _brew_rc
+            ERROR_QUIET)
+    endif()
+    if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
+        message(FATAL_ERROR "MUMPS not found via Homebrew. Run: brew tap brewsci/num && brew install brewsci-mumps")
     endif()
 
     execute_process(
@@ -39,6 +48,7 @@ if(VCPKG_TARGET_IS_OSX)
     endforeach()
 
     set(_mumps_inc "${_mumps_prefix}/include")
+    # macOS MUMPS is static, so all transitive deps must be explicit.
     set(_mumps_libs
         "-L${_mumps_prefix}/lib -ldmumps -lmumps_common${_gfortran_ldflags} -lgfortran -lopenblas")
 
@@ -56,8 +66,11 @@ elseif(VCPKG_TARGET_IS_LINUX)
             "libdmumps not found. Install it first: apt-get install libmumps-dev")
     endif()
     get_filename_component(_mumps_lib_dir "${_dmumps_lib}" DIRECTORY)
-    set(_mumps_libs
-        "-L${_mumps_lib_dir} -ldmumps -lmumps_common -lopenblas -lgfortran")
+    # On Linux the system MUMPS is a shared library; transitive deps (openblas,
+    # gfortran, scotch, metis) are already encoded in the .so and do not need
+    # to be repeated here. Listing them again risks duplicate-symbol conflicts
+    # with vcpkg's own openblas during the configure link test.
+    set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
 
 elseif(VCPKG_TARGET_IS_WINDOWS)
     # Use pre-built MUMPS from the system MSYS2/MinGW64 installation.
@@ -72,20 +85,28 @@ elseif(VCPKG_TARGET_IS_WINDOWS)
     # Use MSYS2 POSIX paths (/c/msys64/...) because coinmumps.pc is consumed
     # inside vcpkg's MSYS2 autotools build environment.
     set(_mumps_inc "/c/msys64/mingw64/include")
+    # Windows MUMPS from MSYS2 is static; list all transitive deps.
     set(_mumps_libs "-L/c/msys64/mingw64/lib -ldmumps -lmumps_common -lpord -lgfortran -lopenblas")
 
 else()
     message(FATAL_ERROR "coin-or-mumps bridge port: unsupported platform.")
 endif()
 
-file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/lib/pkgconfig")
-file(WRITE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/coinmumps.pc"
+set(_pc_content
 "Name: coinmumps
 Description: MUMPS sparse direct solver (system bridge for COIN-OR IPOPT)
 Version: 1.0
 Cflags: -I${_mumps_inc}
 Libs: ${_mumps_libs}
 ")
+
+# Write to both release and debug pkgconfig dirs. vcpkg_configure_make adds
+# the debug pkgconfig path to PKG_CONFIG_PATH when building the debug variant,
+# so without this the debug configure cannot find coinmumps via pkg-config.
+file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/lib/pkgconfig")
+file(WRITE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/coinmumps.pc" "${_pc_content}")
+file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig")
+file(WRITE "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig/coinmumps.pc" "${_pc_content}")
 
 file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/include/coin-or")
 
