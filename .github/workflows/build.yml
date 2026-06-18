@@ -165,9 +165,7 @@ jobs:
       - name: Dump IPOPT configure log on failure
         if: failure()
         run: |
-          for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-out.log \
-                    ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-err.log \
-                    ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-config.log; do
+          for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*.log; do
             [ -f "$f" ] || continue
             echo "========== $f =========="
             cat "$f"
@@ -255,6 +253,15 @@ jobs:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
+
+      - name: Dump IPOPT configure log on failure
+        if: failure()
+        run: |
+          for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*.log; do
+            [ -f "$f" ] || continue
+            echo "========== $f =========="
+            cat "$f"
+          done
 
       - name: Publish PagmoNet4j to mavenLocal
         run: |

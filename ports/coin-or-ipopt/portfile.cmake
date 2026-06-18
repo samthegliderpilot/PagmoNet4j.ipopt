@@ -59,7 +59,10 @@ else()
     set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
 
     set(_mumps_option "--with-mumps")
-    set(LAPACK_OPTION "--with-lapack=-lopenblas")
+    # Pin to the release lib dir explicitly: vcpkg's openblas has no debug build,
+    # so the debug configure (which only has .../debug/lib in LDFLAGS) can't find
+    # libopenblas.a unless we spell out the full release lib path here.
+    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -lopenblas")
     set(CXXLIBS_OPTION "")
 endif()
 
