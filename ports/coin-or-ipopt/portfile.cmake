@@ -35,6 +35,9 @@ else()
         endif()
         set(_mumps_cflags "-I${_mumps_prefix}/include")
         set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
+        # On macOS, vcpkg's openblas is built without LAPACK (Accelerate provides it).
+        # dsyev_ and friends live in the separate vcpkg lapack port (liblapack.a).
+        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     else()
         find_library(_dmumps_lib NAMES dmumps
             HINTS
@@ -49,8 +52,11 @@ else()
             set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
         endif()
         set(_mumps_cflags "-I/usr/include")
-        # Shared system MUMPS carries transitive deps in the .so; don't repeat them.
         set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
+        # On Linux, vcpkg's openblas includes LAPACK. Pin to the release lib dir:
+        # vcpkg's openblas has no debug build, so the debug configure won't find
+        # libopenblas.a unless we specify the release path explicitly.
+        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -lopenblas")
     endif()
 
     set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
@@ -59,10 +65,6 @@ else()
     set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
 
     set(_mumps_option "--with-mumps")
-    # Pin to the release lib dir explicitly: vcpkg's openblas has no debug build,
-    # so the debug configure (which only has .../debug/lib in LDFLAGS) can't find
-    # libopenblas.a unless we spell out the full release lib path here.
-    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -lopenblas")
     set(CXXLIBS_OPTION "")
 endif()
 
