@@ -35,9 +35,6 @@ else()
         endif()
         set(_mumps_cflags "-I${_mumps_prefix}/include")
         set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
-        # On macOS, vcpkg's openblas is built without LAPACK (Accelerate provides it).
-        # dsyev_ and friends live in the separate vcpkg lapack port (liblapack.a).
-        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     else()
         find_library(_dmumps_lib NAMES dmumps
             HINTS
@@ -53,11 +50,12 @@ else()
         endif()
         set(_mumps_cflags "-I/usr/include")
         set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
-        # On Linux, vcpkg's openblas includes LAPACK. Pin to the release lib dir:
-        # vcpkg's openblas has no debug build, so the debug configure won't find
-        # libopenblas.a unless we specify the release path explicitly.
-        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -lopenblas")
     endif()
+
+    # vcpkg's OpenBLAS is built without bundled LAPACK on both Linux and macOS;
+    # LAPACK functions (dsyev_ etc.) live in the separate vcpkg lapack port.
+    # Pin to the release lib dir: vcpkg's openblas/lapack have no debug builds.
+    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
 
     set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
     set(ENV{MUMPS_LIBS} "${_mumps_libs}")
