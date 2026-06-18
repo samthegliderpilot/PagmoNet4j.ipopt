@@ -162,6 +162,17 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
+      - name: Dump IPOPT configure log on failure
+        if: failure()
+        run: |
+          for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-out.log \
+                    ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-err.log \
+                    ~/vcpkg/buildtrees/coin-or-ipopt/config-*-dbg-config.log; do
+            [ -f "$f" ] || continue
+            echo "========== $f =========="
+            cat "$f"
+          done
+
       - name: Publish PagmoNet4j to mavenLocal
         run: |
           chmod +x PagmoNet4j/gradlew
@@ -195,7 +206,7 @@ jobs:
 
       - name: Install MUMPS (macOS via conda-forge)
         run: |
-          micromamba install -c conda-forge -p $HOME/mumps-env mumps-seq -y
+          micromamba create -c conda-forge -p $HOME/mumps-env mumps-seq -y
           echo "MUMPS_PREFIX=$HOME/mumps-env" >> $GITHUB_ENV
 
       - name: Regenerate PagmoNet4j base Java bindings
