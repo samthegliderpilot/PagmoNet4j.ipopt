@@ -10,47 +10,20 @@
 set(VCPKG_BUILD_TYPE release)
 
 if(VCPKG_TARGET_IS_OSX)
-    find_program(_brew NAMES brew HINTS /opt/homebrew/bin /usr/local/bin)
-    if(NOT _brew)
-        message(FATAL_ERROR "Homebrew not found. Install Homebrew, then: brew tap brewsci/num && brew install brewsci-mumps")
+    # MUMPS installed via: micromamba install -c conda-forge -p ~/mumps-env mumps-seq
+    # The MUMPS_PREFIX env var is set by the CI step; fall back to the default path.
+    set(_mumps_prefix "$ENV{MUMPS_PREFIX}")
+    if(NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
+        set(_mumps_prefix "$ENV{HOME}/mumps-env")
     endif()
-    # Try the brewsci/num formula name first, fall back to plain "mumps".
-    execute_process(
-        COMMAND "${_brew}" --prefix brewsci-mumps
-        OUTPUT_VARIABLE _mumps_prefix
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE _brew_rc
-        ERROR_QUIET)
-    if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
-        execute_process(
-            COMMAND "${_brew}" --prefix mumps
-            OUTPUT_VARIABLE _mumps_prefix
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE _brew_rc
-            ERROR_QUIET)
+    if(NOT EXISTS "${_mumps_prefix}/include/dmumps_c.h")
+        message(FATAL_ERROR
+            "MUMPS not found at ${_mumps_prefix}. "
+            "Run: micromamba install -c conda-forge -p ~/mumps-env mumps-seq")
     endif()
-    if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
-        message(FATAL_ERROR "MUMPS not found via Homebrew. Run: brew tap brewsci/num && brew install brewsci-mumps")
-    endif()
-
-    execute_process(
-        COMMAND "${_brew}" --prefix gcc
-        OUTPUT_VARIABLE _gcc_prefix
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET)
-    file(GLOB _gfortran_dirs "${_gcc_prefix}/lib/gcc/*")
-    set(_gfortran_ldflags "")
-    foreach(_d IN LISTS _gfortran_dirs)
-        if(IS_DIRECTORY "${_d}" AND EXISTS "${_d}/libgfortran.a")
-            string(APPEND _gfortran_ldflags " -L${_d}")
-            break()
-        endif()
-    endforeach()
-
     set(_mumps_inc "${_mumps_prefix}/include")
-    # macOS MUMPS is static, so all transitive deps must be explicit.
-    set(_mumps_libs
-        "-L${_mumps_prefix}/lib -ldmumps -lmumps_common${_gfortran_ldflags} -lgfortran -lopenblas")
+    # conda-forge mumps-seq ships shared libs; transitive deps are in the .dylib.
+    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
 
 elseif(VCPKG_TARGET_IS_LINUX)
     set(_mumps_inc "/usr/include")

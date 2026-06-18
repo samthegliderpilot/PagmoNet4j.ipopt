@@ -191,9 +191,12 @@ jobs:
           java-version: '21'
 
       - name: Install build tools
+        run: brew install autoconf autoconf-archive automake libtool swig powershell micromamba
+
+      - name: Install MUMPS (macOS via conda-forge)
         run: |
-          brew tap brewsci/num
-          brew install autoconf autoconf-archive automake libtool swig powershell brewsci-mumps
+          micromamba install -c conda-forge -p $HOME/mumps-env mumps-seq -y
+          echo "MUMPS_PREFIX=$HOME/mumps-env" >> $GITHUB_ENV
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |

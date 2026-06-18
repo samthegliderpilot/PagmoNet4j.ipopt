@@ -29,35 +29,12 @@ else()
     # Belt-and-suspenders: also set the env vars that AC_COIN_CHK_PKG reads
     # when pkg-config fails (both naming conventions).
     if(VCPKG_TARGET_IS_OSX)
-        find_program(_brew NAMES brew HINTS /opt/homebrew/bin /usr/local/bin)
-        execute_process(
-            COMMAND "${_brew}" --prefix brewsci-mumps
-            OUTPUT_VARIABLE _mumps_prefix
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE _brew_rc
-            ERROR_QUIET)
-        if(_brew_rc OR NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
-            execute_process(
-                COMMAND "${_brew}" --prefix mumps
-                OUTPUT_VARIABLE _mumps_prefix
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                ERROR_QUIET)
+        set(_mumps_prefix "$ENV{MUMPS_PREFIX}")
+        if(NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
+            set(_mumps_prefix "$ENV{HOME}/mumps-env")
         endif()
-        execute_process(
-            COMMAND "${_brew}" --prefix gcc
-            OUTPUT_VARIABLE _gcc_prefix
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET)
-        set(_gfortran_ldflags "")
-        file(GLOB _gfortran_dirs "${_gcc_prefix}/lib/gcc/*")
-        foreach(_d IN LISTS _gfortran_dirs)
-            if(IS_DIRECTORY "${_d}" AND EXISTS "${_d}/libgfortran.a")
-                set(_gfortran_ldflags " -L${_d}")
-                break()
-            endif()
-        endforeach()
         set(_mumps_cflags "-I${_mumps_prefix}/include")
-        set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common${_gfortran_ldflags} -lgfortran -lopenblas")
+        set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
     else()
         find_library(_dmumps_lib NAMES dmumps
             HINTS
