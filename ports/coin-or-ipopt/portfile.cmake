@@ -35,6 +35,13 @@ else()
         endif()
         set(_mumps_cflags "-I${_mumps_prefix}/include")
         set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
+        # IpMumpsSolverInterface.cpp line 28 directly includes "mpi.h".  For
+        # sequential MUMPS, conda-forge provides a stub mpi.h in the mumps-env
+        # include dir.  Add it to CPPFLAGS so it is visible to all source files
+        # during make, not just during the configure pkg-config test.
+        set(ENV{CPPFLAGS} "$ENV{CPPFLAGS} -I${_mumps_prefix}/include")
+        # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
+        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     else()
         find_library(_dmumps_lib NAMES dmumps
             HINTS
@@ -50,12 +57,10 @@ else()
         endif()
         set(_mumps_cflags "-I/usr/include")
         set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
+        # vcpkg's lapack-reference is compiled from Fortran; liblapack.a needs
+        # the gfortran runtime (_gfortran_*) and libm (sqrt, logf, etc.).
+        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas -lgfortran -lm")
     endif()
-
-    # vcpkg's OpenBLAS is built without bundled LAPACK on both Linux and macOS;
-    # LAPACK functions (dsyev_ etc.) live in the separate vcpkg lapack port.
-    # Pin to the release lib dir: vcpkg's openblas/lapack have no debug builds.
-    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
 
     set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
     set(ENV{MUMPS_LIBS} "${_mumps_libs}")
