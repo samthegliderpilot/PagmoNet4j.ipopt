@@ -166,13 +166,18 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
-      - name: Dump IPOPT configure log on failure
+      - name: Dump IPOPT build logs on failure
         if: failure()
         run: |
           for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*.log; do
             [ -f "$f" ] || continue
             echo "========== $f =========="
             cat "$f"
+          done
+          for f in ~/vcpkg/buildtrees/coin-or-ipopt/build-*-err.log; do
+            [ -f "$f" ] || continue
+            echo "========== $f (last 200 lines) =========="
+            tail -200 "$f"
           done
 
       - name: Publish PagmoNet4j to mavenLocal
@@ -260,13 +265,18 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
-      - name: Dump IPOPT configure log on failure
+      - name: Dump IPOPT build logs on failure
         if: failure()
         run: |
           for f in ~/vcpkg/buildtrees/coin-or-ipopt/config-*.log; do
             [ -f "$f" ] || continue
             echo "========== $f =========="
             cat "$f"
+          done
+          for f in ~/vcpkg/buildtrees/coin-or-ipopt/build-*-err.log; do
+            [ -f "$f" ] || continue
+            echo "========== $f (last 200 lines) =========="
+            tail -200 "$f"
           done
 
       - name: Publish PagmoNet4j to mavenLocal
