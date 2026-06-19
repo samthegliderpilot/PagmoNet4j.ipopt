@@ -14,6 +14,42 @@ vcpkg_from_github(
 
 file(COPY "${CURRENT_INSTALLED_DIR}/share/coin-or-buildtools/" DESTINATION "${SOURCE_PATH}")
 
+# IpMumpsSolverInterface.cpp and dmumps_c.h include "mpi.h" even when building
+# against sequential (non-MPI) MUMPS.  The system mpi.h is in an MPI-specific
+# directory not in the compiler's default path, and COIN-OR's autotools build
+# does NOT propagate CPPFLAGS into the per-library compile rules.
+#
+# Solution: write a minimal type-only stub into ${SOURCE_PATH}/src, which IS
+# in every compile command as -I.././../src/<hash>/src.  No function
+# declarations — so configure's MPI_Initialized link test still fails and IPOPT
+# stays in sequential mode with no MPI runtime dependency.
+file(WRITE "${SOURCE_PATH}/src/mpi.h"
+"/* Sequential MUMPS MPI type stub — types only, no function declarations.
+   configure's MPI_Initialized link test will still fail so IPOPT stays
+   in sequential (no-MPI) mode with no MPI runtime dependency. */
+#ifndef IPOPT_MUMPS_SEQ_MPI_STUB_H
+#define IPOPT_MUMPS_SEQ_MPI_STUB_H
+typedef int MPI_Comm;
+typedef int MPI_Datatype;
+typedef int MPI_Op;
+typedef int MPI_Status;
+typedef int MPI_Request;
+typedef int MPI_Info;
+typedef int MPI_Group;
+typedef int MPI_Errhandler;
+typedef long MPI_Aint;
+typedef long MPI_Offset;
+#define MPI_COMM_WORLD   ((MPI_Comm)0)
+#define MPI_COMM_SELF    ((MPI_Comm)1)
+#define MPI_SUCCESS      0
+#define MPI_UNDEFINED    (-1)
+#define MPI_DOUBLE       ((MPI_Datatype)0)
+#define MPI_INT          ((MPI_Datatype)0)
+#define MPI_SUM          ((MPI_Op)0)
+#define MPI_STATUS_IGNORE ((MPI_Status*)0)
+#endif
+")
+
 set(ENV{ACLOCAL} "aclocal -I \"${SOURCE_PATH}/BuildTools\"")
 
 if(VCPKG_TARGET_IS_WINDOWS)
@@ -41,11 +77,6 @@ else()
         endif()
         set(_mumps_cflags "-I${_mumps_prefix}/include")
         set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
-        # IpMumpsSolverInterface.cpp line 28 directly includes "mpi.h".  For
-        # sequential MUMPS, conda-forge provides a stub mpi.h in the mumps-env
-        # include dir.  Add it to CPPFLAGS so it is visible to all source files
-        # during make, not just during the configure pkg-config test.
-        set(ENV{CPPFLAGS} "$ENV{CPPFLAGS} -I${_mumps_prefix}/include")
         # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
         set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     else()
