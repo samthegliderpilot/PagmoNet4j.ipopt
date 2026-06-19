@@ -1,3 +1,4 @@
 [submodule "PagmoNet4j"]
 	path = PagmoNet4j
 	url = https://github.com/samthegliderpilot/PagmoNet4j
+	branch = main
