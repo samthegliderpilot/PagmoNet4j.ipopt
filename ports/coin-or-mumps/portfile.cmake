@@ -27,7 +27,10 @@ if(VCPKG_TARGET_IS_OSX)
 
 elseif(VCPKG_TARGET_IS_LINUX)
     set(_mumps_inc "/usr/include")
-    find_library(_dmumps_lib NAMES dmumps
+    # Try the sequential package (libmumps-seq-dev) first — its libraries have
+    # a _seq suffix and carry their own MPI stubs, so no real MPI is needed at
+    # runtime.  Fall back to the plain name (libmumps-dev) if _seq is absent.
+    find_library(_dmumps_lib NAMES dmumps_seq dmumps
         HINTS
             /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
             /usr/lib/x86_64-linux-gnu
@@ -36,14 +39,18 @@ elseif(VCPKG_TARGET_IS_LINUX)
         NO_DEFAULT_PATH)
     if(NOT _dmumps_lib)
         message(FATAL_ERROR
-            "libdmumps not found. Install it first: apt-get install libmumps-dev")
+            "libdmumps(_seq) not found. Install: apt-get install libmumps-seq-dev")
     endif()
     get_filename_component(_mumps_lib_dir "${_dmumps_lib}" DIRECTORY)
+    # Derive the library name suffix (_seq or empty) from whichever was found.
+    if(_dmumps_lib MATCHES "_seq")
+        set(_mumps_sfx "_seq")
+    else()
+        set(_mumps_sfx "")
+    endif()
     # On Linux the system MUMPS is a shared library; transitive deps (openblas,
-    # gfortran, scotch, metis) are already encoded in the .so and do not need
-    # to be repeated here. Listing them again risks duplicate-symbol conflicts
-    # with vcpkg's own openblas during the configure link test.
-    set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
+    # gfortran, scotch, metis) are already encoded in the .so.
+    set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
 
 elseif(VCPKG_TARGET_IS_WINDOWS)
     # Use pre-built MUMPS from the system MSYS2/MinGW64 installation.

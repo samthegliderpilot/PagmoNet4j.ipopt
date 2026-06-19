@@ -80,7 +80,7 @@ else()
         # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
         set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     else()
-        find_library(_dmumps_lib NAMES dmumps
+        find_library(_dmumps_lib NAMES dmumps_seq dmumps
             HINTS
                 /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
                 /usr/lib/x86_64-linux-gnu
@@ -92,8 +92,13 @@ else()
         else()
             set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
         endif()
+        if(_dmumps_lib MATCHES "_seq")
+            set(_mumps_sfx "_seq")
+        else()
+            set(_mumps_sfx "")
+        endif()
         set(_mumps_cflags "-I/usr/include")
-        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps -lmumps_common")
+        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
         # vcpkg's lapack-reference is compiled from Fortran; liblapack.a needs
         # the gfortran runtime (_gfortran_*) and libm (sqrt, logf, etc.).
         set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas -lgfortran -lm")

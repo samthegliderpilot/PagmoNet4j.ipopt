@@ -115,7 +115,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential swig curl zip unzip tar \
-            autoconf autoconf-archive automake libtool libmumps-dev powershell
+            autoconf autoconf-archive automake libtool libmumps-seq-dev powershell
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
@@ -263,6 +263,7 @@ jobs:
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
+          LIBRARY_PATH: "${{ env.HOME }}/mumps-env/lib"
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Dump IPOPT build logs on failure
@@ -291,6 +292,7 @@ jobs:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+          DYLD_LIBRARY_PATH: "${{ env.HOME }}/mumps-env/lib"
         run: |
           chmod +x gradlew
           ./gradlew test
