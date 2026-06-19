@@ -1,3 +1,9 @@
+# Skip the debug build: we only need release IPOPT for our native library.
+# This also avoids the debug-configure-only failures (debug LDFLAGS omit the
+# release lib dir, causing openblas/lapack link tests to fail before the
+# release configure even runs).
+set(VCPKG_BUILD_TYPE release)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO coin-or/Ipopt
