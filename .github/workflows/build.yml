@@ -263,8 +263,9 @@ jobs:
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
-          LIBRARY_PATH: "${{ env.HOME }}/mumps-env/lib"
-        run: pwsh scripts/build-native.ps1 -Configuration Release
+        run: |
+          export LIBRARY_PATH="$HOME/mumps-env/lib"
+          pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Dump IPOPT build logs on failure
         if: failure()
@@ -292,7 +293,7 @@ jobs:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-          DYLD_LIBRARY_PATH: "${{ env.HOME }}/mumps-env/lib"
         run: |
           chmod +x gradlew
+          export DYLD_LIBRARY_PATH="$HOME/mumps-env/lib:$DYLD_LIBRARY_PATH"
           ./gradlew test

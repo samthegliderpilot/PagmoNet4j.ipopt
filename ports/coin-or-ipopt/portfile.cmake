@@ -62,7 +62,9 @@ if(VCPKG_TARGET_IS_WINDOWS)
     set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
     set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
     set(_mumps_option "--with-mumps")
-    set(LAPACK_OPTION "--with-lapack=-L/c/msys64/mingw64/lib -lopenblas")
+    # Use vcpkg-installed lapack/openblas (MSVC-compatible) for the LAPACK check.
+    # MSYS2's MinGW libopenblas.a cannot be linked by MSVC's link.exe.
+    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     set(CXXLIBS_OPTION "CXXLIBS=")
 else()
     # Linux/macOS: MUMPS is provided by the coin-or-mumps bridge port, which
