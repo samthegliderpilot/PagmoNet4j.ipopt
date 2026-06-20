@@ -264,7 +264,7 @@ jobs:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: |
-          export LIBRARY_PATH="$HOME/mumps-env/lib"
+          export LDFLAGS="-L$HOME/mumps-env/lib"
           pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Dump IPOPT build logs on failure
