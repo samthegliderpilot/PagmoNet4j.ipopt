@@ -219,6 +219,13 @@ jobs:
         run: |
           micromamba create -c conda-forge -p $HOME/mumps-env mumps-seq -y
           echo "MUMPS_PREFIX=$HOME/mumps-env" >> $GITHUB_ENV
+          # Apple ld does not read LIBRARY_PATH. Symlink MUMPS dylibs into
+          # /usr/local/lib so the linker finds them without explicit -L flags.
+          for lib in "$HOME/mumps-env/lib/libdmumps"*.dylib \
+                     "$HOME/mumps-env/lib/libmumps_common"*.dylib \
+                     "$HOME/mumps-env/lib/libpord"*.dylib; do
+            [ -f "$lib" ] && ln -sf "$lib" /usr/local/lib/
+          done
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
