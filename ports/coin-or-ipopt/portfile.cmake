@@ -52,68 +52,72 @@ typedef long MPI_Offset;
 
 set(ENV{ACLOCAL} "aclocal -I \"${SOURCE_PATH}/BuildTools\"")
 
-if(VCPKG_TARGET_IS_WINDOWS)
-    # MUMPS provided by coin-or-mumps bridge port (system MSYS2/MinGW64).
-    # Use POSIX /c/msys64/... paths since configure runs inside MSYS2 bash.
+# VCPKG_TARGET_IS_MINGW must be checked before VCPKG_TARGET_IS_WINDOWS because
+# both are true on MinGW/Windows. MinGW is required for IPOPT+MUMPS on Windows:
+# MSYS2's MUMPS static archives (.a) cannot be linked by MSVC's link.exe.
+if(VCPKG_TARGET_IS_MINGW)
+    # Windows/MinGW: GCC build. MSYS2's MUMPS (mingw-w64-x86_64-mumps) is
+    # compatible with GCC's ld. The MUMPS package also installs openblas,
+    # so we use it for LAPACK rather than vcpkg's lapack (which is not
+    # installed for the mingw triplet).
     set(_mumps_cflags "-I/c/msys64/mingw64/include")
     set(_mumps_libs "-L/c/msys64/mingw64/lib -ldmumps -lmumps_common -lpord -lgfortran -lopenblas")
-    set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
-    set(ENV{MUMPS_LIBS} "${_mumps_libs}")
-    set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
-    set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
-    set(_mumps_option "--with-mumps")
-    # Use vcpkg-installed lapack/openblas (MSVC-compatible) for the LAPACK check.
-    # MSYS2's MinGW libopenblas.a cannot be linked by MSVC's link.exe.
-    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
-    set(CXXLIBS_OPTION "CXXLIBS=")
-else()
-    # Linux/macOS: MUMPS is provided by the coin-or-mumps bridge port, which
-    # writes coinmumps.pc into ${CURRENT_INSTALLED_DIR}/lib/pkgconfig.
-    # vcpkg_configure_make automatically adds that dir to PKG_CONFIG_PATH.
-    # Belt-and-suspenders: also set the env vars that AC_COIN_CHK_PKG reads
-    # when pkg-config fails (both naming conventions).
-    if(VCPKG_TARGET_IS_OSX)
-        set(_mumps_prefix "$ENV{MUMPS_PREFIX}")
-        if(NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
-            set(_mumps_prefix "$ENV{HOME}/mumps-env")
-        endif()
-        set(_mumps_cflags "-I${_mumps_prefix}/include")
-        set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
-        # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
-        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
-    else()
-        find_library(_dmumps_lib NAMES dmumps_seq dmumps
-            HINTS
-                /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
-                /usr/lib/x86_64-linux-gnu
-                /usr/lib/aarch64-linux-gnu
-                /usr/lib
-            NO_DEFAULT_PATH)
-        if(_dmumps_lib)
-            get_filename_component(_mumps_lib_dir "${_dmumps_lib}" DIRECTORY)
-        else()
-            set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
-        endif()
-        if(_dmumps_lib MATCHES "_seq")
-            set(_mumps_sfx "_seq")
-        else()
-            set(_mumps_sfx "")
-        endif()
-        set(_mumps_cflags "-I/usr/include")
-        set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
-        # vcpkg's lapack-reference is compiled from Fortran; liblapack.a needs
-        # the gfortran runtime (_gfortran_*) and libm (sqrt, logf, etc.).
-        set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas -lgfortran -lm")
-    endif()
-
-    set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
-    set(ENV{MUMPS_LIBS} "${_mumps_libs}")
-    set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
-    set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
-
-    set(_mumps_option "--with-mumps")
+    set(LAPACK_OPTION "--with-lapack=-L/c/msys64/mingw64/lib -lopenblas")
     set(CXXLIBS_OPTION "")
+
+elseif(VCPKG_TARGET_IS_OSX)
+    # macOS: MUMPS from conda-forge (micromamba create -c conda-forge mumps-seq).
+    # Set MUMPS_PREFIX env var in CI or fall back to ~/mumps-env.
+    set(_mumps_prefix "$ENV{MUMPS_PREFIX}")
+    if(NOT _mumps_prefix OR NOT EXISTS "${_mumps_prefix}")
+        set(_mumps_prefix "$ENV{HOME}/mumps-env")
+    endif()
+    set(_mumps_cflags "-I${_mumps_prefix}/include")
+    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
+    # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
+    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
+    set(CXXLIBS_OPTION "")
+
+elseif(VCPKG_TARGET_IS_LINUX)
+    # Linux: system libmumps-seq-dev. Try the _seq-suffixed name first (sequential
+    # build without MPI runtime dependency), then the plain name.
+    find_library(_dmumps_lib NAMES dmumps_seq dmumps
+        HINTS
+            /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}
+            /usr/lib/x86_64-linux-gnu
+            /usr/lib/aarch64-linux-gnu
+            /usr/lib
+        NO_DEFAULT_PATH)
+    if(_dmumps_lib)
+        get_filename_component(_mumps_lib_dir "${_dmumps_lib}" DIRECTORY)
+    else()
+        set(_mumps_lib_dir "/usr/lib/x86_64-linux-gnu")
+    endif()
+    if(_dmumps_lib MATCHES "_seq")
+        set(_mumps_sfx "_seq")
+    else()
+        set(_mumps_sfx "")
+    endif()
+    set(_mumps_cflags "-I/usr/include")
+    set(_mumps_libs "-L${_mumps_lib_dir} -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
+    # vcpkg's lapack-reference is compiled from Fortran; liblapack.a needs
+    # the gfortran runtime (_gfortran_*) and libm (sqrt, logf, etc.).
+    set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas -lgfortran -lm")
+    set(CXXLIBS_OPTION "")
+
+else()
+    # MSVC Windows: MSYS2's MUMPS .a archives cannot be linked by MSVC's link.exe.
+    # Build IPOPT+MUMPS using the x64-mingw-static triplet instead.
+    message(FATAL_ERROR
+        "coin-or-ipopt: IPOPT+MUMPS on MSVC Windows is not supported. "
+        "Use the x64-mingw-static triplet (build-native.ps1 selects it automatically when IPOPT is enabled).")
 endif()
+
+set(ENV{MUMPS_CFLAGS} "${_mumps_cflags}")
+set(ENV{MUMPS_LIBS} "${_mumps_libs}")
+set(ENV{COINMUMPS_CFLAGS} "${_mumps_cflags}")
+set(ENV{COINMUMPS_LIBS} "${_mumps_libs}")
+set(_mumps_option "--with-mumps")
 
 vcpkg_configure_make(
     SOURCE_PATH "${SOURCE_PATH}"

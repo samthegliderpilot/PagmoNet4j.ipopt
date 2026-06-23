@@ -82,7 +82,9 @@ jobs:
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
-        run: pwsh scripts/build-native.ps1 -Configuration Release
+        run: |
+          $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
+          pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
       - name: Publish PagmoNet4j to mavenLocal
@@ -96,7 +98,9 @@ jobs:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew test
+        run: |
+          $env:PATH = "C:\msys64\mingw64\bin;$env:PATH"
+          ./gradlew test
         shell: pwsh
 
   build-linux:
