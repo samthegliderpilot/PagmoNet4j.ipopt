@@ -152,6 +152,21 @@ vcpkg_install_make()
 vcpkg_copy_pdbs()
 vcpkg_fixup_pkgconfig()
 
+if(VCPKG_TARGET_IS_OSX)
+    # On macOS, -lm is part of libSystem.B.dylib and needs no explicit -lm flag.
+    # Xcode 16+ no longer ships a separate libm.tbd; cmake resolves -lm to that
+    # missing path and fails. Strip -lm from all installed ipopt pkg-config files.
+    file(GLOB _ipopt_pc_files "${CURRENT_PACKAGES_DIR}/**/pkgconfig/ipopt.pc")
+    foreach(_f IN LISTS _ipopt_pc_files)
+        file(READ "${_f}" _content)
+        string(REGEX REPLACE " +-lm\\b" "" _content "${_content}")
+        file(WRITE "${_f}" "${_content}")
+    endforeach()
+    unset(_ipopt_pc_files)
+    unset(_f)
+    unset(_content)
+endif()
+
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
