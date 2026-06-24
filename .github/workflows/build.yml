@@ -223,14 +223,14 @@ jobs:
           # /usr/local/lib so the linker finds them without explicit -L flags.
           # conda-forge mumps-seq on ARM macOS uses _seq suffix; also create
           # plain-name aliases so -ldmumps works in addition to -ldmumps_seq.
-          mkdir -p /usr/local/lib
+          sudo mkdir -p /usr/local/lib
           for lib in "$HOME/mumps-env/lib/lib"*mumps*.dylib \
                      "$HOME/mumps-env/lib/libpord"*.dylib; do
             [ -f "$lib" ] || continue
             base=$(basename "$lib")
-            ln -sf "$lib" "/usr/local/lib/$base"
+            sudo ln -sf "$lib" "/usr/local/lib/$base"
             noseq="${base/_seq/}"
-            [ "$noseq" != "$base" ] && ln -sf "$lib" "/usr/local/lib/$noseq"
+            [ "$noseq" != "$base" ] && sudo ln -sf "$lib" "/usr/local/lib/$noseq"
           done
 
       - name: Regenerate PagmoNet4j base Java bindings
