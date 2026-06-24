@@ -73,7 +73,18 @@ elseif(VCPKG_TARGET_IS_OSX)
         set(_mumps_prefix "$ENV{HOME}/mumps-env")
     endif()
     set(_mumps_cflags "-I${_mumps_prefix}/include")
-    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
+    # conda-forge mumps-seq on ARM macOS installs libdmumps_seq.dylib (with _seq suffix).
+    # Detect which name is actually present so the configure link test succeeds.
+    find_library(_dmumps_mac_lib NAMES dmumps_seq dmumps
+        HINTS "${_mumps_prefix}/lib"
+        NO_DEFAULT_PATH)
+    if(_dmumps_mac_lib MATCHES "_seq")
+        set(_mumps_sfx "_seq")
+    else()
+        set(_mumps_sfx "")
+    endif()
+    unset(_dmumps_mac_lib)
+    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
     # vcpkg's lapack on macOS wraps Accelerate (pure C); no gfortran needed.
     set(LAPACK_OPTION "--with-lapack=-L${CURRENT_INSTALLED_DIR}/lib -llapack -lopenblas")
     set(CXXLIBS_OPTION "")

@@ -22,8 +22,16 @@ if(VCPKG_TARGET_IS_OSX)
             "Run: micromamba install -c conda-forge -p ~/mumps-env mumps-seq")
     endif()
     set(_mumps_inc "${_mumps_prefix}/include")
-    # conda-forge mumps-seq ships shared libs; transitive deps are in the .dylib.
-    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps -lmumps_common")
+    # conda-forge mumps-seq on ARM macOS installs libdmumps_seq.dylib, not libdmumps.dylib.
+    find_library(_dmumps_mac NAMES dmumps_seq dmumps
+        HINTS "${_mumps_prefix}/lib" NO_DEFAULT_PATH)
+    if(_dmumps_mac MATCHES "_seq")
+        set(_mumps_sfx "_seq")
+    else()
+        set(_mumps_sfx "")
+    endif()
+    unset(_dmumps_mac)
+    set(_mumps_libs "-L${_mumps_prefix}/lib -ldmumps${_mumps_sfx} -lmumps_common${_mumps_sfx}")
 
 elseif(VCPKG_TARGET_IS_LINUX)
     set(_mumps_inc "/usr/include")
