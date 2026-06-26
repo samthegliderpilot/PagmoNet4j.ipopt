@@ -89,9 +89,11 @@ jobs:
           # (2026-06-22 scripts) stopped adding vcpkg's 'compile' wrapper to PATH
           # inside the MSYS2 bash subprocess. Create a pass-through wrapper in the
           # MSYS2 usr/bin that is already on PATH via VCPKG_ENV_PASSTHROUGH.
-          foreach ($w in @("compile", "ar-lib", "windres-rc")) {
+          foreach ($w in @("compile", "windres-rc")) {
             [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", [System.Text.Encoding]::UTF8)
           }
+          $arlib = ("#!/bin/sh", "AR=`$1; shift", "ARGS=", "for a; do", "  case `$a in", "    -L*|-l*) ;;", "    *) ARGS=`"`${ARGS} `${a}`" ;;", "  esac", "done", "exec `$AR `$ARGS", "") -join "`n"
+          [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, [System.Text.Encoding]::UTF8)
           C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
           pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
