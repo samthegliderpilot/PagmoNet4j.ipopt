@@ -82,6 +82,7 @@ jobs:
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
+          VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/ports-mingw
         run: |
           $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
           pwsh scripts/build-native.ps1 -Configuration Release
