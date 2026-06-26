@@ -280,7 +280,7 @@ jobs:
           path: |
             ~/vcpkg/installed
             ~/.cache/vcpkg/archives
-          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-macos-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt', 'ports/**') }}
           restore-keys: vcpkg-macos-pagmonet4j-ipopt-
 
       - name: Build native with IPOPT
