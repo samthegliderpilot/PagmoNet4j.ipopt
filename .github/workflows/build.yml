@@ -89,10 +89,7 @@ jobs:
           # (2026-06-22 scripts) stopped adding vcpkg's 'compile' wrapper to PATH
           # inside the MSYS2 bash subprocess. Create a pass-through wrapper in the
           # MSYS2 usr/bin that is already on PATH via VCPKG_ENV_PASSTHROUGH.
-          @'
-#!/bin/sh
-exec "$@"
-'@ | Set-Content "C:\msys64\usr\bin\compile" -Encoding UTF8 -NoNewline
+          [System.IO.File]::WriteAllText("C:\msys64\usr\bin\compile", "#!/bin/sh`nexec `"`$@`"`n", [System.Text.Encoding]::UTF8)
           C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile"
           pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
