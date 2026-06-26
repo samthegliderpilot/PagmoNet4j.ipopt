@@ -85,17 +85,21 @@ jobs:
           VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/ports-mingw
         run: |
           $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
-          # vcpkg's vcpkg_make_configure sets CC='compile gcc' but a recent regression
-          # (2026-06-22 scripts) stopped adding vcpkg's 'compile' wrapper to PATH
-          # inside the MSYS2 bash subprocess. Create a pass-through wrapper in the
-          # MSYS2 usr/bin that is already on PATH via VCPKG_ENV_PASSTHROUGH.
+          $utf8 = New-Object System.Text.UTF8Encoding $false
           foreach ($w in @("compile", "windres-rc")) {
-            [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", [System.Text.Encoding]::UTF8)
+            [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", $utf8)
           }
           $arlib = ("#!/bin/sh", "AR=`$1; shift", "ARGS=", "for a; do", "  case `$a in", "    -L*|-l*) ;;", "    *) ARGS=`"`${ARGS} `${a}`" ;;", "  esac", "done", "exec `$AR `$ARGS", "") -join "`n"
-          [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, [System.Text.Encoding]::UTF8)
+          [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, $utf8)
           C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
           pwsh scripts/build-native.ps1 -Configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "First build attempt failed; patching vcpkg ar-lib in downloaded tools and retrying..."
+            Get-ChildItem "C:\vcpkg\downloads\tools\msys2" -Recurse -Filter "ar-lib" -ErrorAction SilentlyContinue |
+              ForEach-Object { [System.IO.File]::WriteAllText($_.FullName, $arlib, $utf8) }
+            pwsh scripts/build-native.ps1 -Configuration Release
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
         shell: pwsh
 
       - name: Publish PagmoNet4j to mavenLocal
