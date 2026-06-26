@@ -85,6 +85,15 @@ jobs:
           VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/ports-mingw
         run: |
           $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
+          # vcpkg's vcpkg_make_configure sets CC='compile gcc' but a recent regression
+          # (2026-06-22 scripts) stopped adding vcpkg's 'compile' wrapper to PATH
+          # inside the MSYS2 bash subprocess. Create a pass-through wrapper in the
+          # MSYS2 usr/bin that is already on PATH via VCPKG_ENV_PASSTHROUGH.
+          @'
+#!/bin/sh
+exec "$@"
+'@ | Set-Content "C:\msys64\usr\bin\compile" -Encoding UTF8 -NoNewline
+          C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile"
           pwsh scripts/build-native.ps1 -Configuration Release
         shell: pwsh
 
