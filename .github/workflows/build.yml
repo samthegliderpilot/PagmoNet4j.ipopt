@@ -102,6 +102,24 @@ jobs:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
         shell: pwsh
 
+      - name: Dump vcpkg build logs on failure
+        if: failure()
+        run: |
+          foreach ($pkg in @("coin-or-ipopt", "coinutils")) {
+            $logDir = "C:\vcpkg\buildtrees\$pkg"
+            if (Test-Path $logDir) {
+              Get-ChildItem "$logDir\config-*.log" -ErrorAction SilentlyContinue | ForEach-Object {
+                Write-Host "========== $($_.Name) =========="
+                Get-Content $_
+              }
+              Get-ChildItem "$logDir\*-err.log" -ErrorAction SilentlyContinue | ForEach-Object {
+                Write-Host "========== $($_.Name) (last 200 lines) =========="
+                Get-Content $_ | Select-Object -Last 200
+              }
+            }
+          }
+        shell: pwsh
+
       - name: Run tests
         env:
           PAGMO4J_NATIVE_DIR: ${{ github.workspace }}/PagmoNet4j/pagmoWrapper/win-build
