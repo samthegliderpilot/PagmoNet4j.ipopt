@@ -1,5 +1,10 @@
 {
   "name": "coinutils",
   "version-date": "2024-04-08",
-  "description": "CoinUtils with ar-lib patch for MinGW — strips linker flags before ar invocation"
+  "description": "CoinUtils with ar-lib patch for MinGW — strips linker flags before ar invocation",
+  "dependencies": [
+    "coin-or-buildtools",
+    "bzip2",
+    "zlib"
+  ]
 }
