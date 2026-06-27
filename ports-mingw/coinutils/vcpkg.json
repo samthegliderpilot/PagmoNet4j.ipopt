@@ -5,6 +5,10 @@
   "dependencies": [
     "coin-or-buildtools",
     "bzip2",
-    "zlib"
+    "zlib",
+    {
+      "name": "vcpkg-make",
+      "host": true
+    }
   ]
 }
