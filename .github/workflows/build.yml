@@ -125,9 +125,11 @@ jobs:
                 Write-Host "========== $($_.Name) =========="
                 Get-Content $_
               }
+              # Show only the LAST 30 lines of err logs — compiler warnings fill the
+              # rest; the actual error (ar, ranlib, or other) is at the tail.
               Get-ChildItem "$logDir\*-err.log" -ErrorAction SilentlyContinue | ForEach-Object {
-                Write-Host "========== $($_.Name) (last 200 lines) =========="
-                Get-Content $_ | Select-Object -Last 200
+                Write-Host "========== $($_.Name) (last 30 lines) =========="
+                Get-Content $_ | Select-Object -Last 30
               }
             }
           }
