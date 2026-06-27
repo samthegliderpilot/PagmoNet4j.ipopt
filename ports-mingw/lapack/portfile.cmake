@@ -7,14 +7,20 @@ set(VCPKG_BUILD_TYPE release)
 set(_msys2_lib "/c/msys64/mingw64/lib")
 set(_msys2_inc "/c/msys64/mingw64/include")
 
-# pkg-config for autotools consumers (coinutils configure, ipopt configure)
+# pkg-config for autotools consumers.
+# Libs is intentionally EMPTY so that coinutils's configure detects lapack
+# as "available" (pkg-config succeeds) but records no -L/-l library flags.
+# When libtool creates libCoinUtils.la, it passes dependency flags to ar; with
+# an empty Libs the coinutils link-test fails and coinutils skips lapack,
+# preventing ar from receiving unknown -L flags. IPOPT gets the real lapack
+# path from its own portfile's --with-lapack flag — coinutils doesn't need it.
 file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/lib/pkgconfig")
 file(WRITE "${CURRENT_PACKAGES_DIR}/lib/pkgconfig/lapack.pc"
 "Name: lapack
 Version: 3.11.0
-Description: LAPACK via MSYS2 OpenBLAS (MinGW bridge)
+Description: LAPACK bridge for MinGW (empty Libs to avoid libtool ar-lib issues)
 Cflags: -I${_msys2_inc}
-Libs: -L${_msys2_lib} -lopenblas
+Libs:
 ")
 
 # cmake config for cmake consumers (coinutils, pagmo2 cmake)
