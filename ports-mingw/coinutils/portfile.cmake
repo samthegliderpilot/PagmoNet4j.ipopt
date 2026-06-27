@@ -30,7 +30,9 @@ foreach(_f IN LISTS _ar_lib_files)
     file(WRITE "${_f}" "${_ar_lib_content}")
     message(STATUS "Patched ar-lib: ${_f}")
 endforeach()
-unset(_ar_lib_files _f _ar_lib_content)
+unset(_ar_lib_files)
+unset(_f)
+unset(_ar_lib_content)
 
 # Delegate to vcpkg's standard coinutils portfile.
 # cmake's include() sets CMAKE_CURRENT_LIST_DIR to the included file's directory,
