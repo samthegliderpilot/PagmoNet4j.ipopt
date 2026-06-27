@@ -89,7 +89,7 @@ jobs:
           foreach ($w in @("compile", "windres-rc")) {
             [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", $utf8)
           }
-          $arlib = ("#!/bin/sh", "AR=`$1; shift", "ARGS=", "for a; do", "  case `$a in", "    -L*|-l*) ;;", "    *) ARGS=`"`${ARGS} `${a}`" ;;", "  esac", "done", "exec `$AR `$ARGS", "") -join "`n"
+          $arlib = ("#!/bin/sh", "AR=`$1; shift", "libdeps=", "ARGS=", "for a; do", "  case `$a in", "    -L*|-l*) libdeps=`"`${libdeps:+`$libdeps }`$a`" ;;", "    *) ARGS=`"`${ARGS:+`$ARGS }`$a`" ;;", "  esac", "done", "if test -n `"`$libdeps`"; then", "  exec `$AR `"--record-libdeps=`$libdeps`" `$ARGS", "else", "  exec `$AR `$ARGS", "fi", "") -join "`n"
           [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, $utf8)
           C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
           pwsh scripts/build-native.ps1 -Configuration Release
