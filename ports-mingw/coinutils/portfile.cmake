@@ -31,7 +31,19 @@ unset(_ar_lib_files)
 unset(_f)
 unset(_ar_lib_content)
 
+# vcpkg resolves PATCHES arguments relative to the REGISTERED port directory
+# (our overlay), not CMAKE_CURRENT_LIST_DIR of the included file. Copy all
+# patch files from the standard coinutils port into our overlay so that when
+# the included standard portfile calls vcpkg_from_github(...PATCHES...), vcpkg
+# can find them here.
+file(GLOB _std_patches "${VCPKG_ROOT_DIR}/ports/coinutils/*.patch")
+foreach(_p IN LISTS _std_patches)
+    get_filename_component(_pname "${_p}" NAME)
+    configure_file("${_p}" "${CMAKE_CURRENT_LIST_DIR}/${_pname}" COPYONLY)
+endforeach()
+unset(_std_patches)
+unset(_p)
+unset(_pname)
+
 # Delegate to vcpkg's standard coinutils portfile.
-# cmake's include() sets CMAKE_CURRENT_LIST_DIR to the included file's directory
-# so patches in that directory are resolved correctly.
 include("${VCPKG_ROOT_DIR}/ports/coinutils/portfile.cmake")
