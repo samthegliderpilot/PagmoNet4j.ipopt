@@ -37,4 +37,4 @@ unset(_ar_lib_content)
 # Delegate to vcpkg's standard coinutils portfile.
 # cmake's include() sets CMAKE_CURRENT_LIST_DIR to the included file's directory,
 # so patches referenced therein are resolved relative to the standard port.
-include("${VCPKG_ROOT}/ports/coinutils/portfile.cmake")
+include("${VCPKG_ROOT_DIR}/ports/coinutils/portfile.cmake")
