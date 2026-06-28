@@ -18,14 +18,14 @@ if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_WINDOWS OR VCPKG_TARGET_IS_MINGW)
             "Install IPOPT via 'micromamba create -c conda-forge -p <env> ipopt' and set IPOPT_PREFIX.")
     endif()
 
-    # Install headers — search Library/include/coin-or and include/coin-or
+    # Install ALL headers (including IpoptConfig.h which is .h not .hpp)
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/include/coin-or")
     cmake_path(GET _ipopt_prefix PARENT_PATH _ipopt_env_root_hdr)
     file(GLOB _ipopt_hdrs LIST_DIRECTORIES false
-        "${_ipopt_prefix}/include/coin-or/Ip*.hpp"
-        "${_ipopt_prefix}/include/coin-or/IP*.hpp"
-        "${_ipopt_env_root_hdr}/include/coin-or/Ip*.hpp"
-        "${_ipopt_env_root_hdr}/include/coin-or/IP*.hpp")
+        "${_ipopt_prefix}/include/coin-or/*.hpp"
+        "${_ipopt_prefix}/include/coin-or/*.h"
+        "${_ipopt_env_root_hdr}/include/coin-or/*.hpp"
+        "${_ipopt_env_root_hdr}/include/coin-or/*.h")
     unset(_ipopt_env_root_hdr)
     if(NOT _ipopt_hdrs)
         message(FATAL_ERROR "coin-or-ipopt: no IPOPT headers found under ${_ipopt_prefix}/include/coin-or/")
@@ -41,6 +41,11 @@ if(VCPKG_TARGET_IS_OSX OR VCPKG_TARGET_IS_WINDOWS OR VCPKG_TARGET_IS_MINGW)
         file(COPY ${_ipopt_lib} DESTINATION "${CURRENT_PACKAGES_DIR}/lib/")
         file(GLOB _lib_installed "${CURRENT_PACKAGES_DIR}/lib/libipopt*.dylib")
         list(GET _lib_installed 0 _lib_installed)
+        # vcpkg's static triplet sets CMAKE_FIND_LIBRARY_SUFFIXES=".a" so find_library
+        # won't find .dylib. Copy the dylib as .a too — macOS ld reads Mach-O magic
+        # bytes (not the file extension) and will correctly link it as a shared library.
+        get_filename_component(_dylib_stem "${_lib_installed}" NAME_WE)
+        configure_file("${_lib_installed}" "${CURRENT_PACKAGES_DIR}/lib/${_dylib_stem}.a" COPYONLY)
     else()
         # Windows: import library (.lib) for link-time, DLL for runtime.
         # conda-forge may place DLLs in Library/bin or directly in bin at the env root;
