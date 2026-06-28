@@ -89,9 +89,10 @@ jobs:
           foreach ($w in @("compile", "windres-rc")) {
             [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", $utf8)
           }
-          $arlib = ("#!/bin/sh", "AR=`$1; shift", "libdeps=", "ARGS=", "for a; do", "  case `$a in", "    -L*|-l*) libdeps=`"`${libdeps:+`$libdeps }`$a`" ;;", "    *) ARGS=`"`${ARGS:+`$ARGS }`$a`" ;;", "  esac", "done", "if test -n `"`$libdeps`"; then", "  exec `$AR `"--record-libdeps=`$libdeps`" `$ARGS", "else", "  exec `$AR `$ARGS", "fi", "") -join "`n"
+          $arlib = "#!/bin/sh`nAR=`$1`nshift`nARGS=`nfor a; do`n  case `$a in`n    -L*|-l*) ;;`n    *) ARGS=`"`${ARGS:+`$ARGS }`$a`" ;;`n  esac`ndone`nexec `$AR `$ARGS`n"
+          [System.IO.File]::WriteAllText("C:\msys64\mingw64\bin\ar-lib", $arlib, $utf8)
           [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, $utf8)
-          C:\msys64\usr\bin\bash.exe -c "chmod +x /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
+          C:\msys64\usr\bin\bash.exe -c "chmod +x /mingw64/bin/ar-lib /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
           $firstAttemptFailed = $false
           try {
             pwsh scripts/build-native.ps1 -Configuration Release
@@ -125,11 +126,9 @@ jobs:
                 Write-Host "========== $($_.Name) =========="
                 Get-Content $_
               }
-              # Show only the LAST 30 lines of err logs — compiler warnings fill the
-              # rest; the actual error (ar, ranlib, or other) is at the tail.
               Get-ChildItem "$logDir\*-err.log" -ErrorAction SilentlyContinue | ForEach-Object {
-                Write-Host "========== $($_.Name) (last 30 lines) =========="
-                Get-Content $_ | Select-Object -Last 30
+                Write-Host "========== $($_.Name) (last 200 lines) =========="
+                Get-Content $_ | Select-Object -Last 200
               }
             }
           }
@@ -274,6 +273,10 @@ jobs:
             noseq="${base/_seq/}"
             [ "$noseq" != "$base" ] && sudo ln -sf "$lib" "/usr/local/lib/$noseq"
           done
+          SDK=$(xcrun --show-sdk-path 2>/dev/null || true)
+          if [ -n "$SDK" ] && [ ! -f "$SDK/usr/lib/libm.tbd" ] && [ -f "$SDK/usr/lib/libSystem.B.tbd" ]; then
+            sudo cp "$SDK/usr/lib/libSystem.B.tbd" "$SDK/usr/lib/libm.tbd"
+          fi
 
       - name: Regenerate PagmoNet4j base Java bindings
         run: |
