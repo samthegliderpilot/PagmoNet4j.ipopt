@@ -274,8 +274,18 @@ jobs:
             [ "$noseq" != "$base" ] && sudo ln -sf "$lib" "/usr/local/lib/$noseq"
           done
           SDK=$(xcrun --show-sdk-path 2>/dev/null || true)
-          if [ -n "$SDK" ] && [ ! -f "$SDK/usr/lib/libm.tbd" ] && [ -f "$SDK/usr/lib/libSystem.B.tbd" ]; then
-            sudo cp "$SDK/usr/lib/libSystem.B.tbd" "$SDK/usr/lib/libm.tbd"
+          if [ -n "$SDK" ] && [ ! -f "$SDK/usr/lib/libm.tbd" ]; then
+            sudo mkdir -p "$SDK/usr/lib"
+            printf '%s\n' \
+              '--- !tapi-tbd' \
+              'tbd-version: 4' \
+              'targets: [ arm64-apple-macos14.0, x86_64-apple-macos14.0 ]' \
+              "install-name: '/usr/lib/libm.dylib'" \
+              'reexported-libraries:' \
+              '  - targets: [ arm64-apple-macos14.0, x86_64-apple-macos14.0 ]' \
+              "    libraries: [ '/usr/lib/libSystem.B.dylib' ]" \
+              '...' \
+              | sudo tee "$SDK/usr/lib/libm.tbd" > /dev/null
           fi
 
       - name: Regenerate PagmoNet4j base Java bindings

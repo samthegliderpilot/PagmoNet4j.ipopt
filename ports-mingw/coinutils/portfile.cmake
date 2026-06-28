@@ -1,18 +1,6 @@
 set(VCPKG_BUILD_TYPE release)
 
-set(_ar_lib_content
-"#!/bin/sh
-AR=\$1
-shift
-ARGS=
-for a; do
-  case \$a in
-    -L*|-l*) ;;
-    *) ARGS=\"\${ARGS:+\$ARGS }\$a\" ;;
-  esac
-done
-exec \$AR \$ARGS
-")
+set(_ar_lib_content "#!/bin/sh\nAR=\$1\nshift\nARGS=\nfor a; do\n  case \$a in\n    -L*|-l*) ;;\n    *) ARGS=\"\${ARGS:+\$ARGS }\$a\" ;;\n  esac\ndone\nexec \$AR \$ARGS\n")
 file(GLOB _ar_lib_files
     "${VCPKG_ROOT_DIR}/downloads/tools/msys2/*/usr/bin/ar-lib"
     "${VCPKG_ROOT_DIR}/downloads/tools/msys2/*/usr/share/automake-*/ar-lib")
