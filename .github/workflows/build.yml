@@ -71,43 +71,35 @@ jobs:
           path: |
             C:/vcpkg/installed
             ~/AppData/Local/vcpkg/archives
-          key: vcpkg-windows-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt') }}
+          key: vcpkg-windows-pagmonet4j-ipopt-${{ hashFiles('PagmoNet4j/pagmoNet/ports/**', 'PagmoNet4j/pagmoWrapper/CMakeLists.txt', 'ports/**') }}
           restore-keys: vcpkg-windows-pagmonet4j-ipopt-
 
-      - name: Install MUMPS (Windows via MSYS2)
-        run: C:\msys64\usr\bin\pacman.exe -S --noconfirm --needed mingw-w64-x86_64-mumps
-        shell: cmd
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          micromamba-version: 'latest'
+          init-shell: 'none'
+          generate-run-shell: 'false'
+
+      - name: Install IPOPT (Windows via conda-forge)
+        run: |
+          micromamba create -c conda-forge -p C:\ipopt-env ipopt -y
+          echo "IPOPT_PREFIX=C:\ipopt-env\Library" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
 
       - name: Build native with IPOPT
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
-          VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/ports-mingw
+          VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/ports
+        run: pwsh scripts/build-native.ps1 -Configuration Release
+        shell: pwsh
+
+      - name: Copy IPOPT runtime DLLs alongside native library
         run: |
-          $env:PATH = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:PATH"
-          $utf8 = New-Object System.Text.UTF8Encoding $false
-          foreach ($w in @("compile", "windres-rc")) {
-            [System.IO.File]::WriteAllText("C:\msys64\usr\bin\$w", "#!/bin/sh`nexec `"`$@`"`n", $utf8)
-          }
-          $arlib = "#!/bin/sh`nAR=`$1`nshift`nARGS=`nfor a; do`n  case `$a in`n    -L*|-l*) ;;`n    *) ARGS=`"`${ARGS:+`$ARGS }`$a`" ;;`n  esac`ndone`nexec `$AR `$ARGS`n"
-          [System.IO.File]::WriteAllText("C:\msys64\mingw64\bin\ar-lib", $arlib, $utf8)
-          [System.IO.File]::WriteAllText("C:\msys64\usr\bin\ar-lib", $arlib, $utf8)
-          C:\msys64\usr\bin\bash.exe -c "chmod +x /mingw64/bin/ar-lib /usr/bin/compile /usr/bin/ar-lib /usr/bin/windres-rc"
-          $firstAttemptFailed = $false
-          try {
-            pwsh scripts/build-native.ps1 -Configuration Release
-            if ($LASTEXITCODE -ne 0) { $firstAttemptFailed = $true }
-          } catch { $firstAttemptFailed = $true }
-          if ($firstAttemptFailed) {
-            Write-Host "First build attempt failed; patching vcpkg ar-lib in downloaded tools and retrying..."
-            Get-ChildItem "C:\vcpkg\downloads\tools\msys2" -Recurse -Filter "ar-lib" -ErrorAction SilentlyContinue |
-              ForEach-Object {
-                [System.IO.File]::WriteAllText($_.FullName, $arlib, $utf8)
-                Write-Host "  Patched: $($_.FullName)"
-              }
-            pwsh scripts/build-native.ps1 -Configuration Release
-            if ($LASTEXITCODE -ne 0) { exit 1 }
-          }
+          $winBuild = "PagmoNet4j\pagmoWrapper\win-build"
+          New-Item -ItemType Directory -Force $winBuild | Out-Null
+          Get-ChildItem "C:\ipopt-env\Library\bin" -Filter "*.dll" -ErrorAction SilentlyContinue |
+            Copy-Item -Destination $winBuild -Force
         shell: pwsh
 
       - name: Publish PagmoNet4j to mavenLocal
@@ -119,17 +111,15 @@ jobs:
       - name: Dump vcpkg build logs on failure
         if: failure()
         run: |
-          foreach ($pkg in @("coin-or-ipopt", "coinutils")) {
-            $logDir = "C:\vcpkg\buildtrees\$pkg"
-            if (Test-Path $logDir) {
-              Get-ChildItem "$logDir\config-*.log" -ErrorAction SilentlyContinue | ForEach-Object {
-                Write-Host "========== $($_.Name) =========="
-                Get-Content $_
-              }
-              Get-ChildItem "$logDir\*-err.log" -ErrorAction SilentlyContinue | ForEach-Object {
-                Write-Host "========== $($_.Name) (last 200 lines) =========="
-                Get-Content $_ | Select-Object -Last 200
-              }
+          $logDir = "C:\vcpkg\buildtrees\coin-or-ipopt"
+          if (Test-Path $logDir) {
+            Get-ChildItem "$logDir\config-*.log" -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "========== $($_.Name) =========="
+              Get-Content $_
+            }
+            Get-ChildItem "$logDir\*-err.log" -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "========== $($_.Name) (last 200 lines) =========="
+              Get-Content $_ | Select-Object -Last 200
             }
           }
         shell: pwsh
@@ -140,7 +130,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          $env:PATH = "C:\msys64\mingw64\bin;$env:PATH"
+          $env:PATH = "C:\ipopt-env\Library\bin;$env:PATH"
           ./gradlew test
         shell: pwsh
 
@@ -256,17 +246,15 @@ jobs:
       - name: Install build tools
         run: brew install autoconf autoconf-archive automake libtool swig powershell micromamba
 
-      - name: Install MUMPS (macOS via conda-forge)
+      - name: Install MUMPS and IPOPT (macOS via conda-forge)
         run: |
-          micromamba create -c conda-forge -p $HOME/mumps-env mumps-seq -y
+          micromamba create -c conda-forge -p $HOME/mumps-env mumps-seq ipopt -y
           echo "MUMPS_PREFIX=$HOME/mumps-env" >> $GITHUB_ENV
-          # Apple ld does not read LIBRARY_PATH. Symlink MUMPS dylibs into
-          # /usr/local/lib so the linker finds them without explicit -L flags.
-          # conda-forge mumps-seq on ARM macOS uses _seq suffix; also create
-          # plain-name aliases so -ldmumps works in addition to -ldmumps_seq.
+          echo "IPOPT_PREFIX=$HOME/mumps-env" >> $GITHUB_ENV
           sudo mkdir -p /usr/local/lib
           for lib in "$HOME/mumps-env/lib/lib"*mumps*.dylib \
-                     "$HOME/mumps-env/lib/libpord"*.dylib; do
+                     "$HOME/mumps-env/lib/libpord"*.dylib \
+                     "$HOME/mumps-env/lib/libipopt"*.dylib; do
             [ -f "$lib" ] || continue
             base=$(basename "$lib")
             sudo ln -sf "$lib" "/usr/local/lib/$base"
@@ -275,17 +263,8 @@ jobs:
           done
           SDK=$(xcrun --show-sdk-path 2>/dev/null || true)
           if [ -n "$SDK" ] && [ ! -f "$SDK/usr/lib/libm.tbd" ]; then
-            sudo mkdir -p "$SDK/usr/lib"
-            printf '%s\n' \
-              '--- !tapi-tbd' \
-              'tbd-version: 4' \
-              'targets: [ arm64-apple-macos14.0, x86_64-apple-macos14.0 ]' \
-              "install-name: '/usr/lib/libm.dylib'" \
-              'reexported-libraries:' \
-              '  - targets: [ arm64-apple-macos14.0, x86_64-apple-macos14.0 ]' \
-              "    libraries: [ '/usr/lib/libSystem.B.dylib' ]" \
-              '...' \
-              | sudo tee "$SDK/usr/lib/libm.tbd" > /dev/null
+            printf '--- !tapi-tbd\ntbd-version: 4\ntargets: [ arm64-apple-macos14.0, x86_64-apple-macos14.0 ]\ninstall-name: /usr/lib/libm.dylib\n...\n' \
+              | sudo tee "$SDK/usr/lib/libm.tbd" > /dev/null 2>&1 || true
           fi
 
       - name: Regenerate PagmoNet4j base Java bindings
@@ -335,9 +314,7 @@ jobs:
         env:
           PAGMONET4J_ROOT: ${{ github.workspace }}/PagmoNet4j
           PAGMONET4J_FEATURES: nlopt,ipopt
-        run: |
-          export LDFLAGS="-L$HOME/mumps-env/lib"
-          pwsh scripts/build-native.ps1 -Configuration Release
+        run: pwsh scripts/build-native.ps1 -Configuration Release
 
       - name: Dump IPOPT build logs on failure
         if: failure()
@@ -367,5 +344,5 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
           chmod +x gradlew
-          export DYLD_LIBRARY_PATH="$HOME/mumps-env/lib:$DYLD_LIBRARY_PATH"
+          export DYLD_LIBRARY_PATH="$HOME/mumps-env/lib:$(pwd)/PagmoNet4j/pagmoWrapper/build:$DYLD_LIBRARY_PATH"
           ./gradlew test

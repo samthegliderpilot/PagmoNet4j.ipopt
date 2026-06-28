@@ -1,5 +1,0 @@
-{
-  "name": "lapack",
-  "version": "3.11.0",
-  "description": "LAPACK bridge for MinGW — delegates to MSYS2 OpenBLAS (no clapack build)"
-}
