@@ -88,22 +88,25 @@ Libs: -L${_ipopt_prefix}/lib -lipopt
 Cflags: -I${_ipopt_prefix}/include/coin-or
 ")
 
-    # Write cmake config so find_package(Ipopt) works (used by vcpkg/pagmo2 build)
+    # Write cmake config so find_package(Ipopt) works (used by vcpkg/pagmo2 build).
+    # Must use CURRENT_INSTALLED_DIR (not CURRENT_PACKAGES_DIR): vcpkg removes the
+    # packages/ staging dir after install, so any path baked into the config that
+    # references packages/ breaks when the vcpkg cache is restored on a later run.
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/share/ipopt")
     if(VCPKG_TARGET_IS_OSX)
         file(WRITE "${CURRENT_PACKAGES_DIR}/share/ipopt/ipopt-config.cmake"
 "add_library(Ipopt::Ipopt SHARED IMPORTED GLOBAL)
 set_target_properties(Ipopt::Ipopt PROPERTIES
-    IMPORTED_LOCATION \"${_lib_installed}\"
-    INTERFACE_INCLUDE_DIRECTORIES \"${CURRENT_PACKAGES_DIR}/include/coin-or\")
+    IMPORTED_LOCATION \"${CURRENT_INSTALLED_DIR}/lib/${_dylib_stem}.a\"
+    INTERFACE_INCLUDE_DIRECTORIES \"${CURRENT_INSTALLED_DIR}/include/coin-or\")
 ")
     else()
         file(WRITE "${CURRENT_PACKAGES_DIR}/share/ipopt/ipopt-config.cmake"
 "add_library(Ipopt::Ipopt SHARED IMPORTED GLOBAL)
 set_target_properties(Ipopt::Ipopt PROPERTIES
-    IMPORTED_LOCATION \"${CURRENT_PACKAGES_DIR}/bin/${_dll_name}\"
-    IMPORTED_IMPLIB   \"${_lib_installed}\"
-    INTERFACE_INCLUDE_DIRECTORIES \"${CURRENT_PACKAGES_DIR}/include/coin-or\")
+    IMPORTED_LOCATION \"${CURRENT_INSTALLED_DIR}/bin/${_dll_name}\"
+    IMPORTED_IMPLIB   \"${CURRENT_INSTALLED_DIR}/lib/${_implib_name}\"
+    INTERFACE_INCLUDE_DIRECTORIES \"${CURRENT_INSTALLED_DIR}/include/coin-or\")
 ")
     endif()
 
