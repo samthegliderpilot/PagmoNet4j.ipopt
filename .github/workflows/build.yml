@@ -316,6 +316,15 @@ jobs:
           PAGMONET4J_FEATURES: nlopt,ipopt
         run: pwsh scripts/build-native.ps1 -Configuration Release
 
+      - name: Dump cmake link line on failure
+        if: failure()
+        run: |
+          linktxt="PagmoNet4j/pagmoWrapper/build/CMakeFiles/pagmonet4j.dir/link.txt"
+          echo "========== link.txt =========="
+          cat "$linktxt" 2>/dev/null || echo "(link.txt not found)"
+          echo "========== libm references in build.make =========="
+          grep -rn "libm" PagmoNet4j/pagmoWrapper/build/CMakeFiles/pagmonet4j.dir/ 2>/dev/null || echo "(no libm references found)"
+
       - name: Dump IPOPT build logs on failure
         if: failure()
         run: |
