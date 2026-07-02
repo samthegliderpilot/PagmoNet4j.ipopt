@@ -1,13 +1,13 @@
 # PagmoNet4j.ipopt
 
-Optional IPOPT (Interior Point OPTimizer) add-on for [PagmoNet4j](https://github.com/samthegliderpilot/PagmoNet4j).
+[PagmoNet4j](https://github.com/samthegliderpilot/PagmoNet4j) with the IPOPT (Interior Point OPTimizer) nonlinear solver bundled — a self-sufficient **superset** of PagmoNet4j. Depend on this artifact **or** `pagmonet4j`, never both (Gradle enforces this via a capability conflict).
 
 IPOPT is a gradient-based interior-point solver for large-scale nonlinear constrained optimization. It requires the problem to supply gradients (`has_gradient()` returns `true`).
 
 ## Requirements
 
 - JDK 21+
-- `pagmonet4j` 1.0.0-beta.6 (pulled in automatically as a dependency)
+- No dependency on the base `pagmonet4j` artifact — `pagmonet4j-ipopt` provides the full PagmoNet4j API plus IPOPT and declares the `pagmonet4j` capability, so depend on this **or** `pagmonet4j`, never both.
 - No separate IPOPT installation required — the solver is statically linked into the native library
 
 ## Installation
@@ -25,7 +25,7 @@ repositories {
     }
 }
 dependencies {
-    implementation("io.github.samthegliderpilot:pagmonet4j-ipopt:1.0.0-beta.6")
+    implementation("io.github.samthegliderpilot:pagmonet4j-ipopt:1.0.0")
 }
 ```
 
