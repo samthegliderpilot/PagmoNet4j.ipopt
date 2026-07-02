@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- JDK 21+
+- JDK 17+
 - Gradle (wrapper included)
 - vcpkg with `VCPKG_ROOT` set
 - PowerShell 7+ (`pwsh`)
